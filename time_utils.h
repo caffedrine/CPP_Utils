@@ -1,9 +1,13 @@
+#ifndef TIME_UTILS_H
+#define TIME_UTILS_H
+
 #include <iostream>
 #include <chrono>
 #include <string>
 #include <iomanip>
 
-
+namespace TimeUtils
+{
 /* Get time stamp in milliseconds */
 static inline uint64_t millis()
 {
@@ -47,3 +51,7 @@ static std::string formatted_time_now()
 	
 	return oss.str();
 }
+
+}
+
+#endif //TIME_UTILS_H
