@@ -54,6 +54,8 @@ int circ_buff_free_space(circ_buff_t *c);
  */
 uint16_t circ_buff_average(circ_buff_t *c);
 
+uint16_t circ_buff_average_filtered(circ_buff_t *c);
+
 int circ_buffer_elements(circ_buff_t *c);
 
 #endif /* _CIRCULAR_BUFFER_H_ */

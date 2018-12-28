@@ -78,6 +78,41 @@ uint16_t circ_buff_average(circ_buff_t *c)
 	return (uint16_t)(sum/elements);
 }
 
+uint16_t circ_buff_average_filtered(circ_buff_t *c)
+{
+	if( c->head == c->tail )  // if the head == tail, we don't have any data
+		return 0;
+	
+	static uint32_t sum; sum = 0;
+	static int elements; elements = 0;
+	static int index; index = c->tail;
+	static uint16_t min, max;
+	min = 65535, max = 0;
+	
+	while(1)
+	{
+		if(index == c->head)
+			break;
+		
+		/* Remove next two peaks */
+		if(c->buffer[index] < min) min = c->buffer[index];
+		if(c->buffer[index] > max) max = c->buffer[index];
+		
+		sum += c->buffer[index];
+		elements++;
+		
+		if(index >= c->maxlen)
+			index = 0;
+		else
+			index++;
+	}
+	if(elements > 1)
+		return (uint16_t)((sum-min-max)/(elements-2));
+	else
+		return (uint16_t)((sum-min-max)/(elements-2));
+		
+}
+
 int circ_buffer_elements(circ_buff_t *c)
 {
 	/* Empty */
