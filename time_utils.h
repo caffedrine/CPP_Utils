@@ -8,8 +8,7 @@
 #include <sstream>
 #include <mutex>
 #include <condition_variable>
-
-# include <atomic>
+#include <atomic>
 
 
 namespace TimeUtils
@@ -61,98 +60,38 @@ static std::string formatted_time_now()
 class Timer
 {
 public:
-	explicit Timer() = default;
-	
-	
-	/**
- 	 * @brief Restart the counter
- 	 */
 	void Restart()
 	{
-		std::unique_lock<std::mutex> mlock(_mutex);
-		{
-			this->_PreviousUs = this->micros();
-			this->_IsRunning = true;
-		}
-		mlock.unlock();
-		_cond.notify_one();
+		this->_PreviousUs.store( std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() );
+		this->_IsRunning.store(true);
 	}
 	
-	/**
-	 * @brief Stop the timer
-	 */
 	void Stop()
 	{
-		std::unique_lock<std::mutex> mlock(_mutex);
-		{
-			this->_IsRunning = false;
-		}
-		mlock.unlock();
-		_cond.notify_one();
+		this->_IsRunning.store(false);
 	}
 	
-	
-	/**
-	 * @brief Check whether counter is started or not
-	 * @return true if timer is running, false otherwise
-	 */
 	bool IsRunning()
 	{
-		std::unique_lock<std::mutex> mlock(this->_mutex);
-		bool tmp = _IsRunning;
-		mlock.unlock();
-		_cond.notify_one();
-		return tmp;
+		return this->_IsRunning.load();
 	}
 	
-	/**
-	 * @brief Calculate number of elapsed milliseconds from current timestamp
-	 * @return Return elapsed milliseconds
-	 */
 	long ElapsedMs()
 	{
-		std::unique_lock<std::mutex> mlock(this->_mutex);
-		auto tmp = _PreviousUs;
-		mlock.unlock();
-		_cond.notify_one();
-		return ( this->millis() - (tmp/1000u) );
+		return (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() - (this->_PreviousUs.load()/1000u) );
+		
 	}
 	
-	/**
-	 * @brief Calculate number of elapsed microseconds from current timestamp
-	 * @return Return elapsed microseconds
-	 */
 	long ElapsedUs()
 	{
-		std::unique_lock<std::mutex> mlock(_mutex);
-		auto tmp = _PreviousUs;
-		mlock.unlock();
-		_cond.notify_one();
-		return ( this->micros() - tmp );
+		return (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() - this->_PreviousUs.load());
 	}
 	
 private:
-	/** Timer's state */
-	bool _IsRunning = false;
-	/** Thread sync for read/write */
-	std::mutex _mutex;
-	std::condition_variable _cond;
-	/** Remember when timer was stated */
-	long _PreviousUs = 0;
-	
-	std::atomic<long> a;
-	
-	inline long  micros()
-	{
-		return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-	}
-	
-	inline long millis()
-	{
-		return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-	}
-};
+	std::atomic<long> _PreviousUs;
+	std::atomic<bool> _IsRunning;
+};/*Timer class */
 
-}
+}/* Namespace */
 
 #endif //TIME_UTILS_H
