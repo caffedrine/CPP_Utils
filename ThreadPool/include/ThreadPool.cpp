@@ -4,3 +4,8 @@
  */
 
 #include "ThreadPool.h"
+
+ThreadPool::ThreadPool(size_t ThreadsNo) : _Threads_No(ThreadsNo)
+{
+
+}

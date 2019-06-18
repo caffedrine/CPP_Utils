@@ -19,6 +19,7 @@ set(CUSTOM_SOURCES "")
 
 # Includes
 include_directories("${LIBS_DIR}ThirdParty/include/")
+include_directories("${LIBS_DIR}Utils/include/")
 
 ######################################Include everuthing src##################################
 file(GLOB_RECURSE Proj_SOURCES ${CUSTOM_SOURCES} "src/*.cpp" "src/*.c" "include/*.c" "include/*.cpp")
