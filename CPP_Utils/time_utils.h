@@ -31,6 +31,12 @@ static inline long nanos()
 	return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 }
 
+/* Pause current thread */
+static inline void SleepMs(long DurationMs)
+{
+    std::this_thread::sleep_for(std::chrono::milliseconds(DurationMs));
+}
+
 /* Current timestamp for logging */
 static std::string formatted_time_now()
 {

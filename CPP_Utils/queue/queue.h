@@ -1,9 +1,8 @@
 #ifndef QUEUE_H_
 #define QUEUE_H_
 
-
-#include <typedefine.h>
-
+#include <stdint.h>
+#include <stdbool.h>
 
 typedef struct {
     uint8_t* buffer;			//!< buffer supporting the queue
@@ -23,7 +22,7 @@ typedef struct {
  * @param   elementSize         size of an element
  * @return  TRUE upon success
  */
-bool_t queue_init(queue_t* me, void* buffer, uint32_t bufferSize, uint32_t elementSize);
+bool queue_init(queue_t* me, void* buffer, uint32_t bufferSize, uint32_t elementSize);
 
 
 /**
@@ -39,7 +38,7 @@ bool_t queue_init(queue_t* me, void* buffer, uint32_t bufferSize, uint32_t eleme
  * producer and consumer.
  * This happens because overwrite causes push to change head index instead of tail index.
  */
-bool_t queue_push(queue_t* me, void* pushElement, bool_t overwriteIfFull);
+bool queue_push(queue_t* me, void* pushElement, bool overwriteIfFull);
 
 
 /**
@@ -49,7 +48,7 @@ bool_t queue_push(queue_t* me, void* pushElement, bool_t overwriteIfFull);
  * @param   popElement          pointer to the element that will be popped
  * @return  TRUE upon success (FALSE if the queue is empty)
  */
-bool_t queue_pop(queue_t* me, void* popElement);
+bool queue_pop(queue_t* me, void* popElement);
 
 
 /**
@@ -60,7 +59,7 @@ bool_t queue_pop(queue_t* me, void* popElement);
  * @param   peekElement         pointer to the element that will be copied
  * @return  TRUE upon success (FALSE if the selected element doesn't exist)
  */
-bool_t queue_peek(queue_t* me, uint32_t index, void* peekElement);
+bool queue_peek(queue_t* me, uint32_t index, void* peekElement);
 
 
 /**
@@ -69,7 +68,7 @@ bool_t queue_peek(queue_t* me, uint32_t index, void* peekElement);
  * @param   me                  pointer to the queue instance
  * @return  TRUE upon success
  */
-bool_t queue_trash(queue_t* me);
+bool queue_trash(queue_t* me);
 
 
 /**
@@ -78,7 +77,7 @@ bool_t queue_trash(queue_t* me);
  * @param 	me					pointer to the queue instance
  * @return 	TRUE if the queue is empty
  */
-bool_t queue_isEmpty(queue_t* me);
+bool queue_isEmpty(queue_t* me);
 
 
 #endif /* QUEUE_H_ */

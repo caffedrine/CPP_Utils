@@ -1,21 +1,21 @@
 #include "queue.h"
 #include <stdlib.h>
 
-bool_t queue_init(queue_t* me, void* buffer, uint32_t bufferSize, uint32_t elementSize) {
+bool queue_init(queue_t* me, void* buffer, uint32_t bufferSize, uint32_t elementSize) {
     me->buffer = (uint8_t*) buffer;
     me->bufferSize = bufferSize;
     me->elementSize = elementSize;
     me->headByteIndex = 0;
     me->tailByteIndex = 0;
 
-    return TRUE;
+    return true;
 }
 
-bool_t queue_push(queue_t* me, void* pushItem, bool_t overwriteIfFull) {
-    bool_t ok;
+bool queue_push(queue_t* me, void* pushItem, bool overwriteIfFull) {
+    bool ok;
 
     if (me == NULL) {
-        ok = FALSE;
+        ok = false;
     } else {
         // copied here in order to avoid concurrency problems
         uint32_t headByteIndex = me->headByteIndex;
@@ -28,7 +28,7 @@ bool_t queue_push(queue_t* me, void* pushItem, bool_t overwriteIfFull) {
 
         if (nextTail == headByteIndex) {
             if (!overwriteIfFull) {
-                ok = FALSE;
+                ok = false;
             } else {
                 int8_t* tempPtr = (int8_t*) pushItem;
                 uint32_t bufferIndex = headByteIndex;
@@ -44,7 +44,7 @@ bool_t queue_push(queue_t* me, void* pushItem, bool_t overwriteIfFull) {
 
                 me->headByteIndex = bufferIndex;
 
-                ok = TRUE;
+                ok = true;
             }
         } else {
             uint8_t* tempPtr = (uint8_t*) pushItem;
@@ -56,25 +56,25 @@ bool_t queue_push(queue_t* me, void* pushItem, bool_t overwriteIfFull) {
             }
 
             me->tailByteIndex = nextTail;
-            ok = TRUE;
+            ok = true;
         }
     }
 
     return ok;
 }
 
-bool_t queue_pop(queue_t* me, void* popItem) {
-    bool_t ok;
+bool queue_pop(queue_t* me, void* popItem) {
+    bool ok;
 
     if (me == NULL) {
-        ok = FALSE;
+        ok = false;
     } else {
         // copied here in order to avoid concurrency problems
         uint32_t headByteIndex = me->headByteIndex;
         uint32_t tailByteIndex = me->tailByteIndex;
 
         if (headByteIndex == tailByteIndex) {
-            ok = FALSE;
+            ok = false;
         } else {
             uint32_t nextHead = headByteIndex + me->elementSize;
             uint8_t* tempPtr = (uint8_t*) popItem;
@@ -90,27 +90,27 @@ bool_t queue_pop(queue_t* me, void* popItem) {
             }
 
             me->headByteIndex = nextHead;
-            ok = TRUE;
+            ok = true;
         }
     }
 
     return ok;
 }
 
-bool_t queue_peek(queue_t* me, uint32_t index, void* peekItem) {
-    bool_t ok;
+bool queue_peek(queue_t* me, uint32_t index, void* peekItem) {
+    bool ok;
 
     if (me == NULL) {
-        ok = FALSE;
+        ok = false;
     } else {
         uint32_t i;
         uint32_t headByteIndex = me->headByteIndex;
         uint32_t tailByteIndex = me->tailByteIndex;
-        ok = TRUE;
+        ok = true;
 
         for (i = 0; ok && (i < index); i++) {
             if (headByteIndex == tailByteIndex) {
-                ok = FALSE;
+                ok = false;
             } else {
                 headByteIndex += me->elementSize;
                 if (headByteIndex >= me->bufferSize) {
@@ -120,7 +120,7 @@ bool_t queue_peek(queue_t* me, uint32_t index, void* peekItem) {
         }
 
         if (headByteIndex == tailByteIndex) {
-            ok = FALSE;
+            ok = false;
         }
 
         if (ok) {
@@ -137,30 +137,30 @@ bool_t queue_peek(queue_t* me, uint32_t index, void* peekItem) {
     return ok;
 }
 
-bool_t queue_trash(queue_t* me) {
+bool queue_trash(queue_t* me) {
     if (me == NULL) {
-        return FALSE;
+        return false;
     } else {
         me->headByteIndex = 0;
         me->tailByteIndex = 0;
 
-        return TRUE;
+        return true;
     }
 }
 
-bool_t queue_isEmpty(queue_t* me) {
+bool queue_isEmpty(queue_t* me) {
     if (me == NULL) {
-        return FALSE;
+        return false;
     } else {
-        bool_t empty;
+        bool empty;
 
         uint32_t headByteIndex = me->headByteIndex;
         uint32_t tailByteIndex = me->tailByteIndex;
 
         if (headByteIndex == tailByteIndex) {
-            empty = TRUE;
+            empty = true;
         } else {
-            empty = FALSE;
+            empty = false;
         }
 
         return empty;
