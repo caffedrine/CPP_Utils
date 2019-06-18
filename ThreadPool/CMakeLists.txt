@@ -7,9 +7,22 @@ PROJECT(${PROJECT_NAME} C CXX ASM)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -ansi -pedantic")
 
+# Custom includes
+set(LIBS_DIR  "../")
+
+set(CUSTOM_HEADERS "")
+#list(APPEND CUSTOM_HEADERS "${LIBS_DIR}/ThirdParty/include/")
+
+# Custom sources
+set(CUSTOM_SOURCES "")
+#list(APPEND CUSTOM_SOURCES "${LIBS_DIR}/CPP_Utils/*.cpp" "../../01_Libs/CPP_Utils/*.c")
+
+# Includes
+include_directories("${LIBS_DIR}ThirdParty/include/")
+
 ######################################Include everuthing src##################################
-file(GLOB_RECURSE Proj_SOURCES "src/*.cpp" "src/*.c" "include/*.c" "include/*.cpp")
-file(GLOB_RECURSE Proj_HEADERS "src/*.h" "src/*.hpp" "include/*.h" "include/*.hpp")
+file(GLOB_RECURSE Proj_SOURCES ${CUSTOM_SOURCES} "src/*.cpp" "src/*.c" "include/*.c" "include/*.cpp")
+file(GLOB_RECURSE Proj_HEADERS ${CUSTOM_HEADERS} "src/*.h" "src/*.hpp" "include/*.h" "include/*.hpp")
 
 set( Proj_INCLUDE_DIRS "include/")
 foreach (_headerFile ${Proj_HEADERS})
