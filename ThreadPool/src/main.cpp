@@ -3,10 +3,11 @@
 #include <time_utils.h>
 #include <miscelanous.h>
 
+using namespace TimeUtils;
 
 int taskTodo(int a)
 {
-    TimeUtils::SleepMs(GetRandom(10, 500));
+    TimeUtils::SleepMs(GetRandom(100, 1000));
     return a;
 }
 
@@ -14,8 +15,8 @@ int main()
 {
     setup_logger();
     
-    ThreadPool pool(100);
-    std::vector< std::future<int> > results;
+    ThreadPool pool(10);
+    std::list< std::future<int> > results;
     
     for(int i = 0; i < 100; ++i)
     {
@@ -26,16 +27,21 @@ int main()
     TimeUtils::SleepMs(1000);
     logger->info("Start check...");
     
-    for(auto && result: results)
-        std::cout << result.get() << result. << ' ';
-    std::cout << std::endl;
-    
-    
-    while(true)
+    /* Wait for all threads without blocking */
+    while(!results.empty())
     {
-        TimeUtils::SleepMs(1000);
-        logger->info("Tick...");
+        auto it = results.begin();
+        while( it != results.end() )
+        {
+            if( it->wait_for(std::chrono::seconds(0)) == std::future_status::ready )
+            {
+                std::cout << it->get() << ' ';
+                it = results.erase(it);
+            }
+            it++;
+        }
+        TimeUtils::SleepMs(1);
     }
-
+    std::cout << std::endl;
 
 }

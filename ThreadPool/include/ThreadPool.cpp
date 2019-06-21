@@ -37,3 +37,9 @@ ThreadPool::~ThreadPool()
     for( std::thread &worker: workers )
         worker.join();
 }
+ssize_t ThreadPool::ResultsAvailable()
+{
+    return this->results.size();
+}
+
+
