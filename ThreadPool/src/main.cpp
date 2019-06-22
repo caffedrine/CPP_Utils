@@ -41,7 +41,7 @@ int main()
             it++;
         }
         TimeUtils::SleepMs(1);
+        logger->info("Tick...");
     }
     std::cout << std::endl;
-
 }

@@ -194,6 +194,18 @@ namespace StringUtils
 	{
 		return join(split(source, target, false), replacement, false);
 	}
+    
+    static inline void eraseAllSubStr(std::string & mainStr, const std::string & toErase)
+    {
+        size_t pos = std::string::npos;
+        
+        // Search for the substring in string in a loop untill nothing is found
+        while ((pos  = mainStr.find(toErase) )!= std::string::npos)
+        {
+            // If found then erase it from string
+            mainStr.erase(pos, toErase.length());
+        }
+    }
 	
 	static inline std::string toUpper(const std::string &str)
 	{
