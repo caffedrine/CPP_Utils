@@ -1,5 +1,5 @@
 /*  
- *  File      : ${HEADER_FILENAME}
+ *  File      : Ping.h
  *  Created on: 23.06.2019
  *      Author: curiosul
  */

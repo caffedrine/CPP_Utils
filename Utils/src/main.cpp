@@ -4,6 +4,7 @@
 #include "NetworkUtils.h"
 #include "IpUtils.h"
 #include "Ping.h"
+#include "PortScan.h"
 
 using std::vector;
 using std::string;
@@ -29,6 +30,7 @@ int main()
 //        log("'{}' is valid hostname : {}", ip, NetworkUtils::IsValidHostname(ip.c_str()) );
 //        log("'{}' host2ip           : {}", ip, string(NetworkUtils::Hostname2Ip(ip.c_str())) );
 //        log("'{}' ip2host           : {}", ip, string(NetworkUtils::Ip2Hostname(ip.c_str())) );
-        log("'{}' ping attempt      : {}", ip, NetworkUtils::Ping(ip.c_str(), 1000));
+//        log("'{}' ping attempt      : {}", ip, NetworkUtils::Ping(ip.c_str(), 1000));
+        log("'{}' port {} state     : {}", ip, 53, NetworkUtils::IsPortOpen(ip.c_str(), 53));
     }
 }

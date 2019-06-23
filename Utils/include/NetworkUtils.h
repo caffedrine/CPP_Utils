@@ -46,6 +46,7 @@ namespace NetworkUtils
                 return true;
             return false;
         }
+        
     }
     
     bool IsValidHostnameFormat(const char *hostname)
@@ -69,11 +70,21 @@ namespace NetworkUtils
         return true;
     }
     
+    bool IsValidHostnameOrIp(const char *HostnameOrIp)
+    {
+        if( IsValidHostname(HostnameOrIp) == false && _Utils::IsValidIPv4(HostnameOrIp) == false )
+            return false;
+        return true;
+    }
+    
     char const *Ip2Hostname(const char *ip)
     {
         struct hostent *hent;
         struct in_addr addr = {};
         char result[255];
+        
+        if(_Utils::IsValidIPv4(ip) == false)
+            return "";
         
         if( !inet_aton(ip, &addr) )
         {
@@ -130,7 +141,6 @@ namespace NetworkUtils
                     break;
             }
             inet_ntop(res->ai_family, ptr, addrstr, 100);
-            //printf ("IPv%d address: %s (%s)\n", res->ai_family == PF_INET6 ? 6 : 4, addrstr, res->ai_canonname);
             if( ResultsNo > 0 )
             {
                 strcat(result, ",");
