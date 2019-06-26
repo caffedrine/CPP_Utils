@@ -1,31 +1,43 @@
 #include "Logger.h"
 #include <ThreadPool.h>
-#include <time_utils.h>
-#include <miscelanous.h>
+#include <TimeUtils.h>
+#include <Miscelanous.h>
+#include <NetworkUtils.h>
+#include <IpUtils.h>
+#include <Ping.h>
+#include <PortScan.h>
 
-using namespace TimeUtils;
+#include <tuple>
 
-int taskTodo(int a)
+#define log logger->info
+
+std::tuple<char const *, uint16_t, bool> TaskIsPortOpen(const char *HostnameOrIp, uint16_t port_no)
 {
-    TimeUtils::SleepMs(GetRandom(100, 1000));
-    return a;
+    std::tuple<char const *, uint16_t, bool> result;
+    std::get<0>(result) = HostnameOrIp;
+    std::get<1>(result) = port_no;
+    
+    if( NetworkUtils::IsTcpPortOpen(HostnameOrIp, port_no))
+        std::get<2>(result) = true;
+    else
+        std::get<2>(result) = false;
+    
+    TimeUtils::SleepMs(200);
+    
+    return result;
 }
 
 int main()
 {
     setup_logger();
     
-    ThreadPool pool(10);
-    std::list< std::future<int> > results;
+    ThreadPool pool(5000);
+    std::list< std::future<std::tuple<char const *, uint16_t, bool>> > results;
     
-    for(int i = 0; i < 100; ++i)
+    for(int i = 15; i <= 65535; ++i)
     {
-        results.emplace_back( pool.enqueue( taskTodo, i ) );
+        results.emplace_back( pool.enqueue(TaskIsPortOpen ,(const char *)"127.0.0.1", i ) );
     }
-    
-    logger->info("Wait 1s...");
-    TimeUtils::SleepMs(1000);
-    logger->info("Start check...");
     
     /* Wait for all threads without blocking */
     while(!results.empty())
@@ -33,15 +45,18 @@ int main()
         auto it = results.begin();
         while( it != results.end() )
         {
-            if( it->wait_for(std::chrono::seconds(0)) == std::future_status::ready )
+            if( true ) //it->wait_for(std::chrono::seconds(0)) == std::future_status::ready ) /* Prevent from blocking */
             {
-                std::cout << it->get() << ' ';
+                std::tuple<char const *, uint16_t, bool> checkedPortFinished = it->get();
+                if(std::get<2>(checkedPortFinished))
+                    log("{}:{} -> {}", std::get<0>(checkedPortFinished), std::get<1>(checkedPortFinished), std::get<2>(checkedPortFinished));
                 it = results.erase(it);
             }
             it++;
         }
+        
         TimeUtils::SleepMs(1);
-        logger->info("Tick...");
     }
     std::cout << std::endl;
+    
 }

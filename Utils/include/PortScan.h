@@ -23,48 +23,132 @@ extern "C" { // Allow module to be used within a C++ application
 
 namespace NetworkUtils
 {
-    bool IsPortOpen(const char *HostnameOrIp, uint16_t port_no)
+    bool IsTcpPortOpen(const char *HostnameOrIp, uint16_t port_no)
+    {
+        if( IsValidHostnameFormat(HostnameOrIp) == false && _Utils::IsValidIPv4(HostnameOrIp) == false )
+            return false;
+        
+        struct addrinfo hints;
+        struct addrinfo *result, *rp;
+        bool IsPortOpen = false;
+        int sfd = -1;
+        
+        
+        /* Obtain address(es) matching host/port */
+        memset(&hints, 0, sizeof(struct addrinfo));
+        hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
+        hints.ai_socktype = SOCK_STREAM; /* TCP socket */
+        hints.ai_flags = 0;
+        hints.ai_protocol = 0;          /* Any protocol */
+        if( getaddrinfo(HostnameOrIp, NULL, &hints, &result) != 0 )
+        {
+            return false;
+        }
+        
+        /* getaddrinfo() returns a list of address structures.
+           Try each address until we successfully connect(2).
+           If socket(2) (or connect(2)) fails, we (close the socket
+           and) try the next address. */
+        
+        for( rp = result; rp != NULL; rp = rp->ai_next )
+        {
+            sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+            if( sfd == -1 )
+            {
+                continue;
+            }
+            
+            int synRetries = 1; // Send a total of 3 SYN packets => Timeout ~7s
+            if( setsockopt(sfd, IPPROTO_TCP, TCP_SYNCNT, &synRetries, sizeof(synRetries)) < 0 )
+            {
+                return false;
+            }
+            
+            ((struct sockaddr_in *) rp->ai_addr)->sin_port = htons(port_no);
+            if( connect(sfd, rp->ai_addr, rp->ai_addrlen) != -1 )
+            {
+                IsPortOpen = true;
+                break;
+            }
+        }
+        
+        if( IsPortOpen == true && sfd >= 0 )
+            close(sfd);
+        
+        freeaddrinfo(result);           /* No longer needed */
+        
+        return IsPortOpen;
+    }
+    
+    bool IsUdpPortOpen(const char *HostnameOrIp, uint16_t port_no)
+    {
+        /* Not implemented */
+        return false;
+        
+        
+        struct addrinfo hints;
+        struct addrinfo *result, *rp;
+        int sfd = -1;
+        bool IsPortOpen = false;
+        
+        /* Obtain address(es) matching host/port */
+        memset(&hints, 0, sizeof(struct addrinfo));
+        hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
+        hints.ai_socktype = SOCK_DGRAM; /* Datagram socket */
+        hints.ai_flags = 0;
+        hints.ai_protocol = 0;          /* Any protocol */
+        
+        if( getaddrinfo(HostnameOrIp, NULL, &hints, &result) != 0 )
+        {
+            return false;
+        }
+        
+        /* getaddrinfo() returns a list of address structures.
+           Try each address until we successfully connect(2).
+           If socket(2) (or connect(2)) fails, we (close the socket
+           and) try the next address. */
+        
+        for( rp = result; rp != NULL; rp = rp->ai_next )
+        {
+            sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+            if( sfd == -1 )
+            {
+                continue;
+            }
+    
+            int synRetries = 1; // Send a total of 3 SYN packets => Timeout ~7s
+            if( setsockopt(sfd, IPPROTO_UDP, 0, &synRetries, sizeof(synRetries)) < 0 ) /* Check */
+            {
+                return false;
+            }
+    
+            ((struct sockaddr_in *) rp->ai_addr)->sin_port = htons(port_no);
+            if( connect(sfd, rp->ai_addr, rp->ai_addrlen) != -1 )
+            {
+                /* Additional checks to be added */
+                IsPortOpen = true;
+                
+                break;                  /* Success */
+            }
+            
+            
+        }
+        
+        if( IsPortOpen == true && sfd >= 0 )
+        {               /* No address succeeded */
+            close(sfd);
+        }
+        return IsPortOpen;
+    }
+    
+    char const *GetOpenTcpPorts(const char *HostnameOrIp)
     {
         if( IsValidHostnameOrIp(HostnameOrIp) == false )
-            return false;
+            return "";
         
-        int sockfd;
-        struct sockaddr_in serv_addr = {};
-        struct hostent *server;
+        char ports_status[65535 + 1];
         
-        sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if( sockfd < 0 )
-        {
-            return false;
-        }
-        
-        server = gethostbyname(HostnameOrIp);
-        if( server == NULL )
-        {
-            return false;
-        }
-    
-        int synRetries = 2; // Send a total of 3 SYN packets => Timeout ~7s
-        if( setsockopt(sockfd, IPPROTO_TCP, TCP_SYNCNT, &synRetries, sizeof(synRetries)) < 0)
-        {
-            return false;
-        }
-        
-        bzero((char *) &serv_addr, sizeof(serv_addr));
-        serv_addr.sin_family = AF_INET;
-        bcopy((char *) server->h_addr, (char *) &serv_addr.sin_addr.s_addr, server->h_length);
-        
-        serv_addr.sin_port = htons(port_no);
-        if( connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0 )
-        {
-            close(sockfd);
-            return false;
-        }
-        else
-        {
-            close(sockfd);
-            return true;
-        }
+        char port[65535];
     }
 }
 
