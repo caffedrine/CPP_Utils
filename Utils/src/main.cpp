@@ -16,9 +16,11 @@ int main()
 {
 	setup_logger();
  
-	FileWrite("test123", (const char *)"123", 3);
-    FileAppend("test123", (const char *)"_456", 4);
+    vector<string> lines = FileReadLines("test123");
     
-    logger->info( "Recv: {}", FileRead("test123", 2) );
-    
+    log("Lines: {}", lines.size());
+    for(string line: lines)
+    {
+        log("{}", line);
+    }
 }
