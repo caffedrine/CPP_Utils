@@ -31,7 +31,7 @@ int main()
 {
     setup_logger();
     
-    ThreadPool pool(5000);
+    ThreadPool pool(10000);
     std::list< std::future<std::tuple<char const *, uint16_t, bool>> > results;
     
     for(int i = 15; i <= 65535; ++i)
