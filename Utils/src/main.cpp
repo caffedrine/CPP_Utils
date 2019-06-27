@@ -1,5 +1,8 @@
 #include <vector>
 #include <string>
+
+#define _TEST_
+
 #include "Utils/Logger.h"
 #include "NetworkUtils.h"
 #include "IpUtils.h"
@@ -15,12 +18,6 @@ using std::string;
 int main()
 {
 	setup_logger();
- 
-    vector<string> lines = FileReadLines("test123");
-    
-    log("Lines: {}", lines.size());
-    for(string line: lines)
-    {
-        log("{}", line);
-    }
+	
+	IpUtils_TEST();
 }

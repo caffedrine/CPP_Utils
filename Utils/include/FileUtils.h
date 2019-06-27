@@ -114,7 +114,7 @@ std::string FileReadString(const char *Filename, ssize_t MaxLen = 0)
     
     if( buffer )
     {
-        std::string result = string(buffer, length);
+        std::string result = std::string(buffer, length);
         free(buffer);
         return result;
     }
