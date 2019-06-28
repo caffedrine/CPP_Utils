@@ -11,7 +11,12 @@
 extern "C" { // Allow module to be used within a C++ application
 #endif
 
+/* Standard includes*/
 #include <arpa/inet.h>
+/* Custom includes */
+#include <Target.h>
+#include <StdTypes.h>
+#include <MacroUtils.h>
 
 /*
  *      ____            _                 _   _
@@ -21,12 +26,16 @@ extern "C" { // Allow module to be used within a C++ application
  *     |____/ \___|\___|_|\__,_|_|  \__,_|\__|_|\___/|_| |_|___/
  */
 
-/** Functions */
-int8_t IpUtils_IsValidIP(const char *IpStr);
-char const * IpUtils_GetReversedIpAddressBytes(const char *IpStr);
-uint8_t const * IpUtils_IpDottedToBytes(const char *IPv4);
-char const * IpUtils_IpDecimal2Dotted(uint32_t IpNumber);
-char const * IpUtils_GetHostFromUrl(const char *url);
+/** C Functions */
+uint8_t IpUtils_IsValidIP(const char *IpStr);
+uint8_t IpUtils_GetReversedIpAddressBytes(const char *IpStr, char *OutputIpStr);
+uint8_t IpUtils_IpDottedToDecimal(const char *InputIpStr, uint8_t *OutputBytes);
+char const *IpUtils_IpDecimal2Dotted(uint32_t IpNumber);
+char const *IpUtils_GetHostFromUrl(const char *url);
+/** C++ Functions */
+#ifdef __cplusplus
+std::string IpUtils_GetReversedIpAddressStr(const char *IpAddr);
+#endif
 
 /*
  *      ____        __ _       _ _   _
@@ -38,32 +47,33 @@ char const * IpUtils_GetHostFromUrl(const char *url);
  */
 
 /** Check whether given string is a valid IPv4 or IPv6 */
-int8_t IpUtils_IsValidIP(const char *IpStr)
+uint8_t IpUtils_IsValidIP(const char *IpStr)
 {
-    struct sockaddr_in sa;
+    const char *safeCopy = IpStr; /* cygwin? */
+    struct sockaddr_in sa = {};
     
     /* Is valid IPv4? */
-    if( inet_pton(AF_INET, IpStr, &(sa.sin_addr)) == 1 )
+    if( inet_pton(AF_INET, safeCopy, &(sa.sin_addr)) == 1 )
         return 4;
     
     /* Is valid IPv6? */
-    if(inet_pton(AF_INET6, IpStr, &(sa.sin_addr)) == 1)
+    if( inet_pton(AF_INET6, safeCopy, &(sa.sin_addr)) == 1 )
         return 6;
     
     return 0;
 }
 
 /** Return the given string using bytes in reversed order */
-char const * IpUtils_GetReversedIpAddressBytes(const char *IpStr)
+uint8_t IpUtils_GetReversedIpAddressBytes(const char *InputIpStr, char *OutputIpStr)
 {
-    char *resultPtr = NULL;
+    uint8_t RetVal = ERR_NOK;
     
-    if( IpUtils_IsValidIP(IpStr) == 4)
+    if( IpUtils_IsValidIP(InputIpStr) == 4 )
     {
         char reversed_ip[INET_ADDRSTRLEN];
         in_addr_t addr;
         /* Get the textual address into binary format */
-        inet_pton(AF_INET, IpStr, &addr);
+        inet_pton(AF_INET, InputIpStr, &addr);
         /* Reverse the bytes in the binary address */
         addr =
                 ((addr & 0xff000000) >> 24) |
@@ -72,43 +82,57 @@ char const * IpUtils_GetReversedIpAddressBytes(const char *IpStr)
                 ((addr & 0x000000ff) << 24);
         /* And lastly get a textual representation back again */
         inet_ntop(AF_INET, &addr, reversed_ip, sizeof(reversed_ip));
-        resultPtr = reversed_ip;
+        /* Copy result to the output */
+        strcpy(OutputIpStr, reversed_ip);
+        RetVal = 0;
     }
-    else if( IpUtils_IsValidIP(IpStr) == 6)
+    else if( IpUtils_IsValidIP(InputIpStr) == 6 )
     {
         /// IPv6 not implemented
-        resultPtr = (char *)"not_implemented";
+        RetVal = ERR_NOT_IMPLEMENTED;
     }
-    return resultPtr;
+    else
+    {
+        RetVal = ERR_INVALID;
+    }
+    return RetVal;
 }
 
-uint8_t const * IpUtils_IpDottedToBytes(const char *IpStr)
+uint8_t IpUtils_IpDottedToDecimal(const char *InputIpStr, uint8_t *OutputBytes)
 {
-    uint8_t *retP = NULL;
-    uint8_t buff[16];
+    uint8_t RetVal = ERR_NOK;
     
-    if( IpUtils_IsValidIP(IpStr) == 4 )
+    if( IpUtils_IsValidIP(InputIpStr) == 4 )
     {
-        struct sockaddr_in sa = {};
-        if( inet_pton(AF_INET, IpStr, buff) == 1)
+        if( inet_pton(AF_INET, InputIpStr, OutputBytes) == 1 )
         {
-            retP = buff;
+            RetVal = ERR_OK;
+        }
+        else
+        {
+            RetVal = ERR_FAIL;
         }
     }
-    else if( IpUtils_IsValidIP(IpStr) == 6 )
+    else if( IpUtils_IsValidIP(InputIpStr) == 6 )
     {
-        struct sockaddr_in sa = {};
-        if( inet_pton(AF_INET6, IpStr, buff) == 1)
+        if( inet_pton(AF_INET6, InputIpStr, OutputBytes) == 1 )
         {
-            retP = buff;
+            RetVal = ERR_OK;
         }
-        retP = buff;
+        else
+        {
+            RetVal = ERR_FAIL;
+        }
     }
-
-    return retP;
+    else
+    {
+        RetVal = ERR_INVALID;
+    }
+    
+    return RetVal;
 }
 
-char const * IpUtils_IpDecimal2Dotted(uint32_t IpNumber)
+char const *IpUtils_IpDecimal2Dotted(uint32_t IpNumber)
 {
     // https://www.systutorials.com/docs/linux/man/3-inet_pton/
 //    if (inet_ntop(domain, buf, str, INET6_ADDRSTRLEN) == NULL) {
@@ -117,6 +141,12 @@ char const * IpUtils_IpDecimal2Dotted(uint32_t IpNumber)
 //    }
 }
 
+#ifdef __cplusplus
+std::string IpUtils_GetReversedIpAddressStr(const char *IpAddr)
+{
+    return "123";
+}
+#endif
 
 #ifdef _TEST_
 /*
@@ -129,35 +159,26 @@ char const * IpUtils_IpDecimal2Dotted(uint32_t IpNumber)
  */
 #include <stdio.h>
 
-uint32_t ARR4TOUINT32(const uint8_t *IPv4_bytes)
+uint8_t BCDToDecimal (uint8_t bcdByte)
 {
-    if( IPv4_bytes == NULL)
-        return 0;
-    
-    return ((IPv4_bytes[0] << 24) | (IPv4_bytes[1] << 16) | (IPv4_bytes[2] << 8) | IPv4_bytes[3]);
+    return (((bcdByte & 0xF0) >> 4) * 10) + (bcdByte & 0x0F);
 }
 
-const char *ARR16TOSTR(const uint8_t *IPv6_bytes)
+uint8_t DecimalToBCD (uint8_t decimalByte)
 {
-    if(IPv6_bytes == NULL)
-        return NULL;
-    char buff[40];
-    
-    uint32_t msb = ARR4TOUINT32( (const uint8_t *)&IPv6_bytes[12]);
-    
-    sprintf(buff, "%d", msb);
-    
-    char *retP = buff;
-    return retP;
+    return (((decimalByte / 10) << 4) | (decimalByte % 10));
 }
 
 void IpUtils_TEST()
 {
+    char buffer[255];
+    uint8_t arr[255];
+    int result = 0;
+    
     const char *IPv6_Valid = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
     const char *IPv6_Invalid = "2001";
     const char *IPv4_Valid = "192.168.1.1";
     const char *IPv4_Invalid = "123.456.789.012";
-    
     
     printf("IpUtils Test:\n-------------------\n");
     printf("IpUtils_IsValidIP(\"%s\") -> %d\n", IPv6_Valid, IpUtils_IsValidIP(IPv6_Valid));
@@ -166,32 +187,47 @@ void IpUtils_TEST()
     printf("IpUtils_IsValidIP(\"%s\") -> %d\n", IPv4_Invalid, IpUtils_IsValidIP(IPv4_Invalid));
     printf("\n");
     
-    printf("IpUtils_GetReversedIpAddressBytes(\"%s\") -> %s\n", IPv6_Valid, IpUtils_GetReversedIpAddressBytes(IPv6_Valid));
-    printf("IpUtils_GetReversedIpAddressBytes(\"%s\") -> %s\n", IPv6_Invalid, IpUtils_GetReversedIpAddressBytes(IPv6_Invalid));
-    printf("IpUtils_GetReversedIpAddressBytes(\"%s\") -> %s\n", IPv4_Valid, IpUtils_GetReversedIpAddressBytes(IPv4_Valid));
-    printf("IpUtils_GetReversedIpAddressBytes(\"%s\") -> %s\n", IPv4_Invalid, IpUtils_GetReversedIpAddressBytes(IPv4_Invalid));
+    STR_CLR(buffer);
+    result = IpUtils_GetReversedIpAddressBytes(IPv4_Valid, (char *) buffer);
+    printf("IpUtils_GetReversedIpAddressBytes(\"%s\") -> Response code %d (%s)\n", IPv4_Valid, result, buffer);
+    STR_CLR(buffer);
+    result = IpUtils_GetReversedIpAddressBytes(IPv4_Invalid, (char *) buffer);
+    printf("IpUtils_GetReversedIpAddressBytes(\"%s\") -> Response code %d (%s)\n", IPv4_Invalid, result, buffer);
+    STR_CLR(buffer);
+    result = IpUtils_GetReversedIpAddressBytes(IPv6_Valid, (char *) buffer);
+    printf("IpUtils_GetReversedIpAddressBytes(\"%s\") -> Response code %d (%s)\n", IPv6_Valid, result, buffer);
+    STR_CLR(buffer);
+    result = IpUtils_GetReversedIpAddressBytes(IPv6_Invalid, (char *) buffer);
+    printf("IpUtils_GetReversedIpAddressBytes(\"%s\") -> Response code %d (%s)\n", IPv6_Invalid, result, buffer);
     printf("\n");
     
-    printf("IpUtils_IpDottedToBytes(\"%s\") -> %lu\n", IPv4_Valid, (unsigned long int) ARR4TOUINT32( IpUtils_IpDottedToBytes(IPv4_Valid) ) );
-    printf("IpUtils_IpDottedToBytes(\"%s\") -> %lu\n", IPv4_Invalid, (unsigned long int)ARR4TOUINT32( IpUtils_IpDottedToBytes(IPv4_Invalid) ));
-    printf("IpUtils_IpDottedToBytes(\"%s\") -> \"%s\"\n", IPv6_Valid, ARR16TOSTR(IpUtils_IpDottedToBytes(IPv6_Valid)));
-    printf("IpUtils_IpDottedToBytes(\"%s\") -> \"%s\"\n", IPv6_Invalid, ARR16TOSTR(IpUtils_IpDottedToBytes(IPv6_Invalid)));
-    printf("\n");
+    ARR_CLR(arr);
+    result = IpUtils_IpDottedToDecimal(IPv4_Valid, arr);
+    printf("IpUtils_IpDottedToDecimal(\"%s\") -> Response code %d (%lu)\n", IPv4_Valid, result, (unsigned long) ARR4TOUINT32(arr));
+    ARR_CLR(arr);
+    result = IpUtils_IpDottedToDecimal(IPv4_Invalid, arr);
+    printf("IpUtils_IpDottedToDecimal(\"%s\") -> Response code %d (%lu)\n", IPv4_Invalid, result, (unsigned long) ARR4TOUINT32(arr));
     
-//    printf("IpUtils_IpDecimal2Dotted(\"%lu\") -> %s\n", (long unsigned int) IpUtils_Ip4DottedToDecimal(IPv6_Valid), IpUtils_IpDecimal2Dotted(
-//            IpUtils_Ip4DottedToDecimal(IPv6_Valid)));
-//    printf("IpUtils_IpDecimal2Dotted(\"%lu\") -> %s\n", (long unsigned int) IpUtils_Ip4DottedToDecimal(IPv6_Invalid), IpUtils_IpDecimal2Dotted(
-//            IpUtils_Ip4DottedToDecimal(IPv6_Invalid)));
-//    printf("IpUtils_Ip4DottedToDecimal(\"%lu\") -> %s\n", (long unsigned int) IpUtils_Ip4DottedToDecimal(IPv4_Valid), IpUtils_IpDecimal2Dotted(
-//            IpUtils_Ip4DottedToDecimal(IPv4_Valid)));
-//    printf("IpUtils_Ip4DottedToDecimal(\"%lu\") -> %s\n", (long unsigned int) IpUtils_Ip4DottedToDecimal(IPv4_Invalid), IpUtils_IpDecimal2Dotted(
-//            IpUtils_Ip4DottedToDecimal(IPv4_Invalid)));
-//    printf("\n");
+    
+    
+    ARR_CLR(arr);
+    result = IpUtils_IpDottedToDecimal(IPv6_Valid, arr);
+    
+    
+    printf("BDC: %d %d\n", BCDToDecimal(arr[0]),  BCDToDecimal(arr[1]));
+    
+    printf("IpUtils_IpDottedToDecimal(\"%s\") -> Response code %d (%lu)\n", IPv6_Valid, result, (unsigned long) ARR4TOUINT32(arr));
+    
+    
+    
+    ARR_CLR(arr);
+    result = IpUtils_IpDottedToDecimal(IPv6_Invalid, arr);
+    printf("IpUtils_IpDottedToDecimal(\"%s\") -> Response code %d (%lu)\n", IPv6_Invalid, result, (unsigned long) ARR4TOUINT32(arr));
+    printf("\n");
     
 }
 
 #endif // _TEST_
-
 
 #ifdef __cplusplus
 } // extern "C"
