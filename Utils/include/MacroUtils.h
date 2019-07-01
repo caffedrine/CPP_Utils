@@ -1,7 +1,7 @@
 /*  
  *  File      : MacroUtils.h
  *  Created on: 6/28/2019
- *      Author: uib74520
+ *      Author: caffedrine
  */
 
 #ifndef _MACROUTILS_H_
@@ -16,6 +16,10 @@ extern "C" { // Allow module to be used within a C++ application
 
 #ifndef STR_CLR
     #define STR_CLR(str) memset(str, '\0', sizeof(str))
+#endif
+
+#ifndef STR_LEN
+    #define STR_LEN(str) (sizeof(str))
 #endif
 
 #ifndef ARR_CLR

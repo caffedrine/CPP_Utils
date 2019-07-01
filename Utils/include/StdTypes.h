@@ -1,7 +1,7 @@
 /*  
  *  File      : StdTypes.h
  *  Created on: 6/28/2019
- *      Author: uib74520
+ *      Author: caffedrine
  */
 
 #ifndef _STDTYPES_H_
