@@ -13,7 +13,7 @@
 using std::vector;
 using std::string;
 
-#define log logger->info
+
 
 int main()
 {

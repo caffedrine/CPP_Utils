@@ -20,5 +20,6 @@ extern spdlog::logger *logger;
 
 void setup_logger();
 
+#define log logger->info
 
 #endif // _LOGGER_H_

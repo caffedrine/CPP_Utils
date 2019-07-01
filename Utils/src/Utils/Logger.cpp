@@ -12,7 +12,7 @@ void setup_logger()
         logger = new spdlog::logger("Logger", {stdout_sink, rotating_sink});
         logger->set_level(spdlog::level::debug);
         
-        logger->info("---Application logs enabled---");
+        logger->info("Application logs enabled...");
     }
     catch( const spdlog::spdlog_ex &ex )
     {

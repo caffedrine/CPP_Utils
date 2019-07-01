@@ -31,12 +31,13 @@ uint8_t IpUtils_IsValidIP(const char *IpStr);
 uint8_t IpUtils_GetReversedIpAddressBytes(const char *IpStr, char **OutputIpStr);
 uint8_t IpUtils_IpDottedToDecimalBytes(const char *InputIpStr, uint8_t **OutputBytes);
 uint8_t IpUtils_IpDottedToDecimalString(const char *InputIpStr, char **OutputIpStr);
-uint8_t IpUtils_IpDecimal2Dotted(uint8_t *IpBytes, ssize_t IPBytesLen, char *OutputStr);
-uint8_t IpUtils_GetHostFromUrl(const char *url, char *OutputStr, ssize_t MaxOutputLen = 256);
+uint8_t IpUtils_IpDecimalToDottedString(const char *InputIpDecStr, char **OutputIpStr);
+uint8_t IpUtils_GetHostFromUrl(const char *url, char **OutputStr);
 /** C++ Functions */
 #ifdef __cplusplus
 std::string IpUtils_GetReversedIpAddressStr(std::string *IpAddr);
 std::string IpUtils_IpDottedToDecimalStr(std::string *IpDotted);
+std::string IpUtils_IpDecimalToDottedStr(std::string *IpDecimal);
 #endif
 
 /*
@@ -158,7 +159,8 @@ uint8_t IpUtils_IpDottedToDecimalBytes(const char *InputIpStr, uint8_t **OutputB
 
 uint8_t IpUtils_IpDottedToDecimalString(const char *InputIpStr, char **OutputIpStr)
 {
-    char *ResultStr = NULL;
+    uint8_t RetVal = ERR_NOK;
+    *OutputIpStr = NULL;
     
     uint8_t IpVer = IpUtils_IsValidIP(InputIpStr);
     if( IpVer != 4 && IpVer != 6 )
@@ -166,35 +168,88 @@ uint8_t IpUtils_IpDottedToDecimalString(const char *InputIpStr, char **OutputIpS
         return ERR_INVALID;
     }
     
-    uint8_t *RetStr = NULL;
-    uint8_t RetVal = IpUtils_IpDottedToDecimalBytes(InputIpStr, &RetStr);
-    if( RetVal == ERR_OK && RetStr != nullptr )
+    uint8_t *RetAddrBytes = NULL;
+    uint8_t ReturnedVal = IpUtils_IpDottedToDecimalBytes(InputIpStr, &RetAddrBytes);
+    if( ReturnedVal == ERR_OK && RetAddrBytes != nullptr )
     {
         if( IpVer == 4 )
         {
-            ResultStr = (char *) malloc(4);
-            ResultStr = (char *) RetStr;
-            *OutputIpStr = ResultStr;
+            uint32_t DecNumber = ARR4TOUINT32( RetAddrBytes );
+            ssize_t DigitsNo = DIGITS_NO(DecNumber);
+            char *tmp = (char *)malloc( DigitsNo + 1);
+            int idx = 0;
+            while(DecNumber != 0)
+            {
+                uint8_t digit = DecNumber % 10;
+                DecNumber /= 10;
+                tmp[DigitsNo-1-idx] = (char)digit + '0';
+                idx++;
+            }
+            tmp[idx] = '\0';
+            *OutputIpStr = tmp;
+            RetVal = ERR_OK;
+        }
+        else if(IpVer == 6)
+        {
+            /* Not imlpemented for IPv6 */
+            *OutputIpStr = NULL;
+            RetVal = ERR_NOT_IMPLEMENTED;
         }
         else
         {
-            /* Not imlpemented for IPv6 */
-            ResultStr = NULL;
+            *OutputIpStr = NULL;
+            RetVal = ERR_INVALID;
         }
     }
-    free(RetStr);
-    return ERR_OK;
+    free(RetAddrBytes);
+    return RetVal;
 }
 
-uint8_t IpUtils_IpDecimal2Dotted(uint8_t *IpDecBytes, ssize_t IPBytesLen, char *OutputStr)
+uint8_t IpUtils_IpDecimalToDottedString(const char *InputIpDecStr, char **OutputIpStr)
 {
     uint8_t RetVal = ERR_NOK;
+    *OutputIpStr = NULL;
     
-    // https://www.systutorials.com/docs/linux/man/3-inet_pton/
-//    if (inet_ntop(domain, buf, str, INET6_ADDRSTRLEN) == NULL) {
-//        perror("inet_ntop");
-//        exit(EXIT_FAILURE);
-//    }
+    if( OutputIpStr == NULL )
+    {
+        return ERR_INVALID;
+    }
+    
+    uint32_t DecInput = ToUInt(  (const char *)InputIpDecStr);
+    if(str2int(&DecInput, InputIpDecStr, 10) != ERR_OK)
+    {
+        return RetVal;
+    }
+    
+    /* Detect IP only by it's size :D */
+    if( DecInput <= UINT32_MAX)
+    {
+    
+    }
+    
+    if( IpUtils_IsValidIP(InputIpStr) == 4 )
+    {
+        char *reversed_ip = (char *) malloc(INET_ADDRSTRLEN + 1);
+        
+        /* Get the textual address into binary format */
+        inet_pton(AF_INET, InputIpDecStr, &addr);
+        /* And lastly get a textual representation back again */
+        inet_ntop(AF_INET, &addr, reversed_ip, INET_ADDRSTRLEN);
+        reversed_ip[INET_ADDRSTRLEN] = '\0';
+        /* Copy result to the output */
+        (*OutputIpStr) = reversed_ip;
+        RetVal = 0;
+    }
+    else if( IpUtils_IsValidIP(InputIpStr) == 6 )
+    {
+        *OutputIpStr = NULL;
+        RetVal = ERR_NOT_IMPLEMENTED;
+    }
+    else
+    {
+        *OutputIpStr = NULL;
+        RetVal = ERR_INVALID;
+    }
     return RetVal;
 }
 
@@ -213,7 +268,7 @@ std::string IpUtils_GetReversedIpAddressStr(std::string *IpAddr)
     return result;
 }
 
-std::string IpUtils_IpDotteToDecimalStr(std::string *IpDotted)
+std::string IpUtils_IpDottedToDecimalStr(std::string *IpDotted)
 {
     std::string result = "";
     
@@ -242,6 +297,12 @@ std::string IpUtils_IpDotteToDecimalStr(std::string *IpDotted)
     free(RetStr);
     return result;
 }
+
+std::string IpUtils_IpDecimalToDottedStr(std::string *IpDecimal)
+{
+    return "not_implemented";
+}
+
 #endif
 
 #ifdef _TEST_
@@ -254,16 +315,6 @@ std::string IpUtils_IpDotteToDecimalStr(std::string *IpDotted)
  *
  */
 #include <stdio.h>
-
-uint8_t BCDToDecimal(uint8_t bcdByte)
-{
-    return (((bcdByte & 0xF0) >> 4) * 10) + (bcdByte & 0x0F);
-}
-
-uint8_t DecimalToBCD(uint8_t decimalByte)
-{
-    return (((decimalByte / 10) << 4) | (decimalByte % 10));
-}
 
 uint8_t IntegersArrayToDecimalStr(uint8_t *arr, ssize_t arr_len, char *OutputStr)
 {
@@ -346,16 +397,16 @@ void IpUtils_TEST()
     printf("\n");
     
     result = IpUtils_IpDottedToDecimalString(IPv4_Valid, (&tmpPtr) );
-    printf("IpUtils_IpDottedToDecimalString(\"%s\") -> Response code %d (%s)\n", IPv4_Valid, result, tmpPtr);
+    printf("IpUtils_IpDottedToDecimalString(\"%s\") -> Response code %d (\"%s\")\n", IPv4_Valid, result, tmpPtr);
     free(tmpPtr);
     result = IpUtils_IpDottedToDecimalString(IPv4_Invalid, &tmpPtr);
-    printf("IpUtils_IpDottedToDecimalString(\"%s\") -> Response code %d (%s)\n", IPv4_Invalid, result, tmpPtr);
+    printf("IpUtils_IpDottedToDecimalString(\"%s\") -> Response code %d (\"%s\")\n", IPv4_Invalid, result, tmpPtr);
     free(tmpPtr);
     result = IpUtils_IpDottedToDecimalString(IPv6_Valid, &tmpPtr);
-    printf("IpUtils_IpDottedToDecimalString(\"%s\") -> Response code %d (%s)\n", IPv6_Valid, result, tmpPtr);
+    printf("IpUtils_IpDottedToDecimalString(\"%s\") -> Response code %d (\"%s\")\n", IPv6_Valid, result, tmpPtr);
     free(tmpPtr);
     result = IpUtils_IpDottedToDecimalString(IPv6_Invalid, &tmpPtr);
-    printf("IpUtils_IpDottedToDecimalString(\"%s\") -> Response code %d (%s)\n", IPv6_Invalid, result, tmpPtr);
+    printf("IpUtils_IpDottedToDecimalString(\"%s\") -> Response code %d (\"%s\")\n", IPv6_Invalid, result, tmpPtr);
     free(tmpPtr);
     printf("\n");
     

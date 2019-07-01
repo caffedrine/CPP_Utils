@@ -13,6 +13,7 @@ extern "C" { // Allow module to be used within a C++ application
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <StdTypes.h>
 
 #ifndef STR_CLR
     #define STR_CLR(str) memset(str, '\0', sizeof(str))
@@ -56,7 +57,17 @@ extern "C" { // Allow module to be used within a C++ application
     else if (length < 0) *status = -1; \
     else *status = 1;
 
-    
+inline ssize_t DIGITS_NO(uint64_t int_number)
+{
+    int i = 0;
+    while( int_number != 0 )
+    {
+        int_number /= 10;
+        i++;
+    }
+    return i;
+}
+
 uint16_t ARR2TOUINT16(const uint8_t *bytes)
 {
     if( bytes == NULL )
@@ -105,6 +116,28 @@ uint64_t ARR8TOUINT64(const uint8_t *bytes)
     return ipnum;
 }
 
+uint8_t BCDToDecimal(uint8_t bcdByte)
+{
+    return (((bcdByte & 0xF0) >> 4) * 10) + (bcdByte & 0x0F);
+}
+
+uint8_t DecimalToBCD(uint8_t decimalByte)
+{
+    return (((decimalByte / 10) << 4) | (decimalByte % 10));
+}
+
+unsigned long ToUInt(char* str)
+{
+    unsigned long mult = 1;
+    unsigned long re = 0;
+    int len = strlen(str);
+    for(int i = len -1 ; i >= 0 ; i--)
+    {
+        re = re + ((int)str[i] -48)*mult;
+        mult = mult*10;
+    }
+    return re;
+}
 
 #ifdef _ENABLE_UINT128_
 uint128_t ARR16TOUINT128(const uint8_t *bytes)
