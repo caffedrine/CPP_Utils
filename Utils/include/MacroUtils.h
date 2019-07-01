@@ -30,6 +30,33 @@ extern "C" { // Allow module to be used within a C++ application
     #define ARR_LEN(arr)  (sizeof(arr)/sizeof(arr[0]))
 #endif
 
+// print items of an array by a format
+#define PRINT_ARRAY(array, length, format) \
+{ \
+    putchar('['); \
+    for (size_t i = 0; i < length; ++i) { \
+        printf(format, array[i]); \
+        if (i < length - 1) printf(", "); \
+    } \
+    puts("]"); \
+}
+
+
+// reverse an array in place
+#define REVERSE_ARRAY(array, length, status) \
+    if (length > 0) { \
+        for (int i = 0; i < length / 2; ++i) { \
+            double temp; \
+            temp = array[i]; \
+            array[i] = array[length - i - 1]; \
+            array[length - i - 1] = temp; \
+        } \
+        *status = 0; \
+    } \
+    else if (length < 0) *status = -1; \
+    else *status = 1;
+
+    
 uint16_t ARR2TOUINT16(const uint8_t *bytes)
 {
     if( bytes == NULL )
@@ -78,6 +105,7 @@ uint64_t ARR8TOUINT64(const uint8_t *bytes)
     return ipnum;
 }
 
+
 #ifdef _ENABLE_UINT128_
 uint128_t ARR16TOUINT128(const uint8_t *bytes)
 {
@@ -95,8 +123,6 @@ uint128_t ARR16TOUINT128(const uint8_t *bytes)
     return ipnum;
 }
 #endif
-
-
 
 #ifdef __cplusplus
 } // extern "C"
