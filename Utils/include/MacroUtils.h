@@ -13,6 +13,7 @@ extern "C" { // Allow module to be used within a C++ application
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <byteswap.h>
 #include <StdTypes.h>
 
 #ifndef STR_CLR
@@ -56,6 +57,9 @@ extern "C" { // Allow module to be used within a C++ application
     } \
     else if (length < 0) *status = -1; \
     else *status = 1;
+
+#define SWAP_UINT16(x) (((x) >> 8) | ((x) << 8))
+#define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00FF0000) >> 8) | (((x) & 0x0000FF00) << 8) | ((x) << 24))
 
 inline ssize_t DIGITS_NO(uint64_t int_number)
 {
@@ -126,15 +130,15 @@ uint8_t DecimalToBCD(uint8_t decimalByte)
     return (((decimalByte / 10) << 4) | (decimalByte % 10));
 }
 
-unsigned long ToUInt(char* str)
+unsigned long ToUInt(const char *str)
 {
     unsigned long mult = 1;
     unsigned long re = 0;
     int len = strlen(str);
-    for(int i = len -1 ; i >= 0 ; i--)
+    for( int i = len - 1; i >= 0; i-- )
     {
-        re = re + ((int)str[i] -48)*mult;
-        mult = mult*10;
+        re = re + ((int) str[i] - 48) * mult;
+        mult = mult * 10;
     }
     return re;
 }
