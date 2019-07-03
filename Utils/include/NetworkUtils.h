@@ -4,18 +4,18 @@
 #include <string>
 #include <vector>
 #include <stdio.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <netinet/ip_icmp.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <netinet/ip_icmp.h>
 #include <time.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <netinet/tcp.h>
 #include <cstring>
 
 namespace NetworkUtils
@@ -206,7 +206,7 @@ namespace NetworkUtils
             }
             
             int synRetries = 1; // Send a total of 3 SYN packets => Timeout ~7s
-            if( setsockopt(sfd, IPPROTO_TCP, TCP_SYNCNT, &synRetries, sizeof(synRetries)) < 0 )
+            if( setsockopt(sfd, IPPROTO_TCP, 7/*TCP_SYNCNT*/, &synRetries, sizeof(synRetries)) < 0 )
             {
                 return false;
             }

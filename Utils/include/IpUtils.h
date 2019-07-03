@@ -7,12 +7,9 @@
 #ifndef _IP_UTILS_H_
 #define _IP_UTILS_H_
 
-#ifdef __cplusplus
-extern "C" { // Allow module to be used within a C++ application
-#endif
-
 /* Standard includes*/
 #include <arpa/inet.h>
+#include <string>
 /* Custom includes */
 #include <Target.h>
 #include <StdTypes.h>
@@ -421,11 +418,6 @@ void IpUtils_TEST()
     #endif
     
 }
-
 #endif // _TEST_
-
-#ifdef __cplusplus
-} // extern "C"
-#endif
 
 #endif // _IP_UTILS_H_

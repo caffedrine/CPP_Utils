@@ -7,10 +7,6 @@
 #ifndef _TARGET_H_
 #define _TARGET_H_
 
-#ifdef __cplusplus
-extern "C" { // Allow module to be used within a C++ application
-#endif
-
 #ifdef _WIN32
 //define something for Windows (32-bit and 64-bit, this part is common)
    #ifdef _WIN64
@@ -41,10 +37,6 @@ extern "C" { // Allow module to be used within a C++ application
 
 #else
 #   error "Unknown compiler"
-#endif
-
-#ifdef __cplusplus
-} // extern "C"
 #endif
 
 #endif // _TARGET_H_
