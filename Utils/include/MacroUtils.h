@@ -11,9 +11,12 @@
 extern "C" { // Allow module to be used within a C++ application
 #endif
 
+/* System includes */
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 #include <byteswap.h>
+/* Custom includes */
 #include <StdTypes.h>
 
 #ifndef STR_CLR
@@ -45,7 +48,7 @@ extern "C" { // Allow module to be used within a C++ application
 
 
 // reverse an array in place
-#define REVERSE_ARRAY(array, length, status) \
+#define REVERSE_ARRAY(array, length) \
     if (length > 0) { \
         for (int i = 0; i < length / 2; ++i) { \
             double temp; \
@@ -53,10 +56,7 @@ extern "C" { // Allow module to be used within a C++ application
             array[i] = array[length - i - 1]; \
             array[length - i - 1] = temp; \
         } \
-        *status = 0; \
     } \
-    else if (length < 0) *status = -1; \
-    else *status = 1;
 
 #define SWAP_UINT16(x) (((x) >> 8) | ((x) << 8))
 #define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00FF0000) >> 8) | (((x) & 0x0000FF00) << 8) | ((x) << 24))

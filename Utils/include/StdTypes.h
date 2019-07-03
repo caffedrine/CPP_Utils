@@ -16,6 +16,7 @@ extern "C" { // Allow module to be used within a C++ application
 #define ERR_INVALID             2
 #define ERR_NOT_IMPLEMENTED     3
 #define ERR_FAIL                4
+#define ERR_NOT_FOUND           5
 
 #ifdef _ENABLE_UINT128_
     #ifndef uint128_t

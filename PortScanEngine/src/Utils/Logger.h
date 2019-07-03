@@ -17,10 +17,9 @@
 
 /* Logger instance - multi-threaded */
 extern spdlog::logger *logger;
-
+/* Logger init function */
+void LoggerInit();
+/* Macro to send logs to output */
 #define log logger->info
-
-void setup_logger();
-
 
 #endif // _LOGGER_H_
