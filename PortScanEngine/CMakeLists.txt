@@ -15,7 +15,7 @@ set(CUSTOM_HEADERS "")
 
 # Custom sources
 set(CUSTOM_SOURCES "")
-#list(APPEND CUSTOM_SOURCES "${LIBS_DIR}/CPP_Utils/*.cpp" "../../01_Libs/CPP_Utils/*.c")
+list(APPEND CUSTOM_SOURCES "${LIBS_DIR}ThreadPool/include/*.cpp")
 
 # Includes
 include_directories("${LIBS_DIR}ThirdParty/include/")
