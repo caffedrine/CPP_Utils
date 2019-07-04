@@ -5,7 +5,8 @@
 
 void OnIpScannedCb(IpScanResult *result)
 {
-    log("Finished scanning on {} and found {} open ports.", result->GetIpAddress(), result->GetPortsOpen().size());
+    log("Finished scanning on {}. Total number of ports is {} which translates into {} open ports and {} closed ports.",
+            result->GetIpAddress(), result->GetPortsRaw().size(), result->GetPortsOpen().size(), result->GetPortsClosed().size());
 }
 
 int main()
@@ -13,10 +14,14 @@ int main()
     LoggerInit();
     
     /* Scanned handler and callback event */
-    PortScanEngine scanner(1000, &OnIpScannedCb);
-    scanner.StartScanTcp("127.0.0.1");
+    PortScanEngine scanner(10, &OnIpScannedCb);
+    vector<uint16_t>ports;
+    for(uint16_t i = 1; i < 1024; i++)
+        ports.push_back(i);
+    scanner.StartScanTcp("127.0.0.1", ports);
+    log("Scanner started...");
     
-    while( true ) // scanner.GetStatus() == PortScanEngine::State::IDLE)
+    while( scanner.GetStatus() != PortScanEngine::State::IDLE)
     {
         scanner.Tick();
         TimeUtils::SleepMs(1);

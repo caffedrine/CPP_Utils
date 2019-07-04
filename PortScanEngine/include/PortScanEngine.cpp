@@ -30,7 +30,7 @@ void PortScanEngine::Tick()
             if( it->wait_for(std::chrono::seconds(0)) == std::future_status::ready ) /* Prevent from blocking */
             {
                 std::tuple<std::string, IpScanResult::port_t> result = it->get();
-                for( IpScanResult ip : this->IpScanResults )
+                for( IpScanResult &ip : this->IpScanResults )
                 {
                     if( ip.GetIpAddress() == std::get<0>(result) )
                     {
@@ -44,16 +44,32 @@ void PortScanEngine::Tick()
     }
     
     /* Notify upper layers about new results being available */
-    if( !IpScanResults.empty() ) // while to return all available results at once?
+    if( !IpScanResults.empty() )
     {
-        On_IpScanCompleted(&IpScanResults.front());
-        IpScanResults.pop_front();
+        auto it = IpScanResults.begin();
+        while(it != IpScanResults.end())
+        {
+            if(it->IsScanFinished())
+            {
+                On_IpScanCompleted(&it.operator*());
+                it = IpScanResults.erase(it);
+            }
+            it++;
+        }
     }
 }
 
 PortScanEngine::State PortScanEngine::GetStatus()
 {
-    return this->ScannerStatus;
+    if( this->tasksResults.empty() && this->IpScanResults.empty() )
+    {
+        return State::IDLE;
+    }
+    else
+    {
+        return State::RUNNING;
+    }
+    
 }
 
 void PortScanEngine::On_IpScanCompleted(IpScanResult *ip)
@@ -75,22 +91,40 @@ bool PortScanEngine::StartScanTcp(string IPAddress, vector<uint16_t> PortsList)
             IpScanResult::port_t currPort;
             currPort.Number = i;
             currPort.State = IpScanResult::PortSate::NOT_CHECKED;
-            
-            threadPool->enqueue(TaskScanPort, IPAddress, i);
+    
+            this->tasksResults.emplace_back (threadPool->enqueue(TaskScanPort, IPAddress, i) );
             IpScanResults.back().Ports.emplace_back( currPort );
         }
         return true;
     }
     else
     {
-        return false;
+        this->IpScanResults.emplace_back( IpScanResult( IPAddress ) );
+        for( uint16_t port: PortsList )
+        {
+            IpScanResult::port_t currPort;
+            currPort.Number = port;
+            currPort.State = IpScanResult::PortSate::NOT_CHECKED;
+        
+            this->tasksResults.emplace_back( threadPool->enqueue(TaskScanPort, IPAddress, port) );
+            IpScanResults.back().Ports.emplace_back( currPort );
+        }
+        return true;
     }
 }
 
 bool PortScanEngine::IsResultAvailable()
 {
+    if(IpScanResults.empty())
+        return false;
+    
     /* Check whether there some results available */
-    return IpScanResults.empty();
+    for( IpScanResult &result: IpScanResults )
+    {
+        if(result.IsScanFinished())
+            return true;
+    }
+    return false;
 }
 
 IpScanResult PortScanEngine::PopResult()
@@ -98,9 +132,17 @@ IpScanResult PortScanEngine::PopResult()
     /* Check whether there some results available or not */
     if( !IpScanResults.empty() )
     {
-        IpScanResult result = IpScanResults.front();
-        IpScanResults.pop_front();
-        return result;
+        auto it = IpScanResults.begin();
+        while(it != IpScanResults.end())
+        {
+            if(it->IsScanFinished())
+            {
+                IpScanResult ret = it.operator*();
+                it = IpScanResults.erase(it);
+                return ret;
+            }
+            it++;
+        }
     }
     
     /* Throw exception if there is no result, forcing to check for availability first */

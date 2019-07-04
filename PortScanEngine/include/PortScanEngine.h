@@ -14,8 +14,6 @@
 #include <tuple>
 #include <Exception.h>
 #include <ThreadPool.h>
-#include <nss.h>
-//#include <NetworkUtils.h>
 
 using std::string;
 using std::vector;
@@ -52,7 +50,7 @@ public:
     vector<uint16_t> GetPortsOpen() const
     {
         vector<uint16_t> result;
-        for(port_t port: Ports)
+        for(const port_t &port: Ports)
         {
             if(port.State == PortSate::OPEN)
             {
@@ -65,7 +63,7 @@ public:
     vector<uint16_t> GetPortsClosed() const
     {
         vector<uint16_t> result;
-        for(port_t port: Ports)
+        for(const port_t &port: Ports)
         {
             if(port.State == PortSate::CLOSED)
             {
@@ -77,7 +75,7 @@ public:
     
     PortSate GetPortState(uint16_t PortNumber) const
     {
-        for(port_t port: Ports)
+        for(const port_t &port: Ports)
         {
             if(PortNumber == port.Number)
             {
@@ -94,9 +92,19 @@ private:
     /* Allow this class access to private variables */
     friend class PortScanEngine;
     
+    bool IsScanFinished()
+    {
+        for(port_t &port: Ports)
+        {
+            if(port.State == PortSate::NOT_CHECKED)
+                return false;
+        }
+        return true;
+    }
+    
     void EmplacePortScanResult(uint16_t PortNumber, PortSate State)
     {
-       for(port_t port: Ports)
+       for(port_t &port: Ports)
        {
            if(port.Number == PortNumber)
            {
@@ -128,7 +136,9 @@ public:
     bool IsResultAvailable();
     IpScanResult PopResult();
     void Tick();
-
+    
+    static std::tuple<std::string, IpScanResult::port_t> TaskScanPort( const std::string& ip, uint16_t port );
+    
 protected:
     virtual void On_IpScanCompleted(IpScanResult *ip);
 
@@ -140,7 +150,7 @@ private:
     On_IpScannedCbFunc_t On_IpScanCompletedCbFunc = nullptr;
     
     /* This is passed to all threads */
-    static std::tuple<std::string, IpScanResult::port_t> TaskScanPort( const std::string& ip, uint16_t port );
+//    static std::tuple<std::string, IpScanResult::port_t> TaskScanPort( const std::string& ip, uint16_t port );
     
 };
 
