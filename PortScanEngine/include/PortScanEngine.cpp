@@ -82,6 +82,12 @@ void PortScanEngine::On_IpScanCompleted(IpScanResult *ip)
 
 bool PortScanEngine::StartScanTcp(string IPAddress, vector<uint16_t> PortsList)
 {
+    /* Check if new tasks wil exceed max tasks allowed */
+    if( (PortsList.empty() && this->tasksResults.size() + UINT16_MAX > MAX_QUEUE_TASKS) || (this->tasksResults.size()+PortsList.size() > MAX_QUEUE_TASKS) )
+    {
+        return false;
+    }
+    
     /* Scan all ports if not provided a list of selective ports */
     if( PortsList.empty() )
     {
@@ -189,7 +195,7 @@ std::tuple<std::string, IpScanResult::port_t> PortScanEngine::TaskScanPort(const
             continue;
         }
         
-        int synRetries = 1; // Send a total of 3 SYN packets => Timeout ~7s
+        int synRetries = 3; // Send a total of 3 SYN packets => Timeout ~7s
         if( setsockopt(sfd, IPPROTO_TCP, 7/*TCP_SYNCNT*/, &synRetries, sizeof(synRetries)) < 0 )
         {
             throw Exception("TaskScanPort(ip, port)", "setsockopt()");
@@ -213,5 +219,10 @@ std::tuple<std::string, IpScanResult::port_t> PortScanEngine::TaskScanPort(const
     std::get<1>(resultTuple).Number = port;
     std::get<1>(resultTuple).State = (IsPortOpen == true ? IpScanResult::PortSate::OPEN : IpScanResult::PortSate::CLOSED);
     return resultTuple;
+}
+
+uint32_t PortScanEngine::GetAvailableQueue()
+{
+    return MAX_QUEUE_TASKS-this->tasksResults.size();
 }
 

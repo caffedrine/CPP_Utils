@@ -7,16 +7,11 @@
 #ifndef _FILEUTILS_H_
 #define _FILEUTILS_H_
 
+#include <string>
+#include <unistd.h>
 #include <fstream>
-
-#ifdef __cplusplus
-extern "C" { // Allow module to be used within a C++ application
-#endif
-
-#ifdef __cplusplus
-    #include <vector>
-    #include <string>
-#endif
+#include <vector>
+#include <list>
 
 bool FileExists(const char *Filename)
 {
@@ -133,16 +128,16 @@ std::vector<std::string> FileReadLines(const char *Filename, int MaxLines = 0)
     std::string str;
     // Read the next line from File untill it reaches the end.
     ssize_t appended_lines = 0;
-    while (std::getline(in, str))
+    while( std::getline(in, str) )
     {
         // Line contains string of length > 0 then save it in vector
-        if(str.size() > 0 )
+        if( str.size() > 0 )
         {
             result.push_back(str);
             appended_lines++;
         }
         
-        if(appended_lines > MaxLines && MaxLines > 0)
+        if( appended_lines > MaxLines && MaxLines > 0 )
         {
             break;
         }
@@ -151,9 +146,5 @@ std::vector<std::string> FileReadLines(const char *Filename, int MaxLines = 0)
     in.close();
     return result;
 }
-
-#ifdef __cplusplus
-} // extern "C"
-#endif
 
 #endif // _FILEUTILS_H_

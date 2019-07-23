@@ -121,6 +121,7 @@ typedef void (*On_IpScannedCbFunc_t)(IpScanResult *);
 
 class PortScanEngine
 {
+    const uint32_t MAX_QUEUE_TASKS = UINT16_MAX;
 public:
     enum class  State
     {
@@ -128,15 +129,14 @@ public:
         PAUSED,
         IDLE,
     };
-    
     explicit PortScanEngine(size_t ThreadsNumber, On_IpScannedCbFunc_t = nullptr);
     ~PortScanEngine();
     bool StartScanTcp(string IPAddress, vector<uint16_t> PortsList = vector<uint16_t>());
     State GetStatus();
+    uint32_t GetAvailableQueue();
     bool IsResultAvailable();
     IpScanResult PopResult();
     void Tick();
-    
     static std::tuple<std::string, IpScanResult::port_t> TaskScanPort( const std::string& ip, uint16_t port );
     
 protected:
