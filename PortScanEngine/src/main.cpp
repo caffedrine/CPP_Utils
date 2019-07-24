@@ -1,5 +1,6 @@
 #include <TimeUtils.h>
 #include <FileUtils.h>
+#include <AnsiColors.h>
 
 #include "PortScanEngine.h"
 #include "Logger.h"
@@ -7,8 +8,19 @@
 void OnIpScannedCb(IpScanResult *result)
 {
     static int i = 0;
-    log("{}. Finished scanning on {}. Total number of ports is {} which translates into {} open ports and {} closed ports.",
-            ++i, result->GetIpAddress(), result->GetPortsRaw().size(), result->GetPortsOpen().size(), result->GetPortsClosed().size());
+    std::string OpenPortsStr = "";
+    for(uint16_t OpenPort: result->GetPortsOpen())
+    {
+        OpenPortsStr += std::to_string(OpenPort) + ",";
+    }
+    if(!OpenPortsStr.empty())
+    {
+        OpenPortsStr.pop_back();
+        OpenPortsStr = "(" + OpenPortsStr + ") ";
+    }
+    
+    log("{}. Finished scanning on " ANSI_COLOR_GREEN "{}" ANSI_COLOR_RESET ". Total number of ports is {} which translates into " ANSI_COLOR_GREEN_BOLD "{}" ANSI_COLOR_RESET " open ports {}and " ANSI_COLOR_RED_BOLD "{}" ANSI_COLOR_RESET " closed ports.",
+            ++i, result->GetIpAddress(), result->GetPortsRaw().size(), result->GetPortsOpen().size(), OpenPortsStr, result->GetPortsClosed().size());
 }
 
 int main(int argc, char *argv[])
