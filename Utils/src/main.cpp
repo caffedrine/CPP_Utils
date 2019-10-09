@@ -1,23 +1,19 @@
+#include "Utils/Logger.h"
 #include <vector>
 #include <string>
+#include <combinations/Combinations.h>
 
-#define _TEST_
-
-#include "Utils/Logger.h"
-#include "NetworkUtils.h"
-#include "IpUtils.h"
-#include "Ping.h"
-#include "PortScan.h"
-#include "FileUtils.h"
-
-using std::vector;
-using std::string;
-
-
+uint8_t Charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 int main()
 {
 	setup_logger();
 	
-	IpUtils_TEST();
+    Combinations possibleKeys(sizeof(Charset), 11, Charset );
+    
+    log("C({0}, {1}) = {2}\n", sizeof(Charset), 11, possibleKeys.CalculatePossibleCombinations());
+	for(int i = 0; i < 99; i++)
+    {
+	    log("{0}. {1}", i, possibleKeys.GetNextCombination());
+    }
 }
