@@ -37,8 +37,8 @@ Combinations::~Combinations()
 
 void Combinations::GetNextCombination(uint8_t *pBuffer = nullptr)
 {
-    static int LastCharsetCharIndex = this->SampleLength - 1;
-    static int LastIncrementedCharPosition = 0;
+    static int LastCharsetCharIndex = 0;
+    static int LastIncrementedCharPosition = this->SampleLength - 1;
     
     if( LastCharsetCharIndex + 1 >= this->CharsetLength )
     {
@@ -57,7 +57,7 @@ void Combinations::GetNextCombination(uint8_t *pBuffer = nullptr)
             {
                 // TODO: Replace with something better
                 int index = 0;
-                for(int j = 0; j < this->CharsetLength; j++)
+                for( int j = 0; j < this->CharsetLength; j++ )
                 {
                     if( this->LastCombination[j] == this->Charset[j] )
                     {
@@ -78,7 +78,7 @@ void Combinations::GetNextCombination(uint8_t *pBuffer = nullptr)
         LastCharsetCharIndex++;
         
         /* Always change last char from sample if not reached last character from charset */
-        this->LastCombination[this->SampleLength - 1] = LastCharsetCharIndex;
+        this->LastCombination[this->SampleLength - 1] = this->Charset[LastCharsetCharIndex];
         if( pBuffer != nullptr )
         {
             for( int i = 0; i < this->SampleLength; i++ )
@@ -90,14 +90,18 @@ void Combinations::GetNextCombination(uint8_t *pBuffer = nullptr)
 std::string Combinations::GetNextCombination()
 {
     this->GetNextCombination(nullptr);
-    return std::string((const char *) this->LastCombination);
+    return std::string((const char *) this->LastCombination, this->SampleLength);
 }
 
 uint64_t Combinations::CalculatePossibleCombinations()
 {
     uint64_t PossibleCombinations = 0;
-    PossibleCombinations = (CalculateFactorial(this->CharsetLength) /
-                            (CalculateFactorial(this->SampleLength) * CalculateFactorial(this->CharsetLength - this->SampleLength)));
+    
+    uint64_t up = (uint64_t) CalculateFactorial(this->CharsetLength);
+    uint64_t down = (uint64_t) ((uint64_t) CalculateFactorial(this->SampleLength) * ((uint64_t) CalculateFactorial(this->CharsetLength - this->SampleLength)) );
+    
+    PossibleCombinations = up/down;
+    
     return PossibleCombinations;
 }
 
