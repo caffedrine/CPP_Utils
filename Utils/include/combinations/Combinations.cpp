@@ -59,7 +59,7 @@ void Combinations::GetNextCombination(uint8_t *pBuffer = nullptr)
                 int index = 0;
                 for( int j = 0; j < this->CharsetLength; j++ )
                 {
-                    if( this->LastCombination[j] == this->Charset[j] )
+                    if( this->LastCombination[i] == this->Charset[j] )
                     {
                         index = j;
                         break;
