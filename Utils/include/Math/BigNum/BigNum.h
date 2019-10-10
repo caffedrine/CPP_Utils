@@ -3,6 +3,7 @@
  *  Created on: 2019-10-10
  *      Author: uib74520
  *      Source: https://github.com/kokke/tiny-bignum-c
+ *      Lib   : https://gmplib.org
  */
 
 #ifndef _BIGNUM_H_
