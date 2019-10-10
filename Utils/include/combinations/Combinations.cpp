@@ -1,8 +1,17 @@
 #include "Combinations.h"
 
-Combinations::Combinations(int NumberOfElementsInCharset, int _SampleLength, const uint8_t *_Charset) : CharsetLength(NumberOfElementsInCharset),
-                                                                                                        SampleLength(_SampleLength)
+Combinations::Combinations(int NumberOfElementsInCharset, int _SampleLength, const uint8_t *_Charset) : CharsetLength(NumberOfElementsInCharset), SampleLength(_SampleLength)
 {
+    /* Validate given parameters */
+    if(this->SampleLength <= 0 || this->CharsetLength <= 0)
+    {
+        throw Exception("Combinations", "Elements of charset and length of sample needs to be > 0");
+    }
+    if( this->SampleLength < this->CharsetLength )
+    {
+        throw Exception("Combinations", "Elements of charset needs to be greather than the length of sample.");
+    }
+    
     /* Allocate memory to keep charset stored */
     this->Charset = (uint8_t *) malloc(this->CharsetLength);
     
@@ -100,6 +109,11 @@ uint64_t Combinations::CalculatePossibleCombinations()
     uint64_t up = (uint64_t) CalculateFactorial(this->CharsetLength);
     uint64_t down = (uint64_t) ((uint64_t) CalculateFactorial(this->SampleLength) * ((uint64_t) CalculateFactorial(this->CharsetLength - this->SampleLength)) );
     
+    if(up == 0 || down == 0)
+    {
+        throw Exception("CalculatePossibleCombinations", "The old problem with division by 0!");
+    }
+    
     PossibleCombinations = up/down;
     
     return PossibleCombinations;
@@ -107,9 +121,13 @@ uint64_t Combinations::CalculatePossibleCombinations()
 
 inline uint64_t Combinations::CalculateFactorial(int n)
 {
-    if( n <= 0 )
+    if( n < 0 )
     {
         return 0;
+    }
+    if( n == 0)
+    {
+        return 1;
     }
     
     uint64_t result = 1;

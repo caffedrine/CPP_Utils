@@ -8,6 +8,7 @@
 #define _COMBINATIONS_H_
 
 #include <string>
+#include <Exception.h>
 
 class Combinations
 {
