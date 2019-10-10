@@ -104,5 +104,5 @@ std::string Combinations::GetNextCombination()
 
 uint64_t Combinations::CalculatePossibleCombinations()
 {
-    return CombinationsOfMfromNwithRepetitions(this->CharsetLength, this->SampleLength);
+    return Algebra_CombinationsOfMfromNwithRepetitions(this->CharsetLength, this->SampleLength);
 }

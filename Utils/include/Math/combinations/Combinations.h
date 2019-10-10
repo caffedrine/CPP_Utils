@@ -9,7 +9,7 @@
 
 #include <string>
 #include <Exception.h>
-#include <Algebra.h>
+#include <Math/Algebra.h>
 
 class Combinations
 {
