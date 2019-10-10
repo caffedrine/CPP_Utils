@@ -3,7 +3,7 @@ SET(CMAKE_SYSTEM_NAME Generic)
 SET(CMAKE_SYSTEM_VERSION 1)
 
 project(Util)
-PROJECT(${PROJECT_NAME} C CXX ASM)
+PROJECT(${PROJECT_NAME} CXX C ASM)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -ansi -pedantic")
 
@@ -36,11 +36,6 @@ link_directories(${Proj_INCLUDE_DIRS})
 
 add_executable (${PROJECT_NAME} ${Proj_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${Proj_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} pthread)
+target_link_libraries(${PROJECT_NAME} libstdc++)
+#target_link_libraries(${PROJECT_NAME} pthread)
 #target_link_libraries(${PROJECT_NAME} myhtml)
-
-## Copy executable to 'build/Exe' directory
-#set(EXE_NAME "${PROJECT_NAME}")
-#add_custom_command(TARGET "${EXE_NAME}" POST_BUILD
-#        COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/build/Release/${EXE_NAME} ${PROJECT_SOURCE_DIR}/build/Exe/${EXE_NAME}
-#        COMMENT "Objcopy: Copying executables to output directory: 'build/Exe'" )

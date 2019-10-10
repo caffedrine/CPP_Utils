@@ -9,6 +9,7 @@
 
 #include <string>
 #include <Exception.h>
+#include <Algebra.h>
 
 class Combinations
 {
@@ -27,8 +28,6 @@ private:
     int CharsetLength;
     int SampleLength;
     uint8_t *LastCombination = nullptr;
-    
-    inline uint64_t CalculateFactorial(int n);
 
 };
 
