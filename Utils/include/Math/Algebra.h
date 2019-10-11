@@ -13,6 +13,7 @@ extern "C" { // Allow module to be used within a C++ application
 #endif
 
 #include <stdio.h>
+#include <stdint.h>
 
 uint64_t Algebra_nFactorial(unsigned int n);
 
