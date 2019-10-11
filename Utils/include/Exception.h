@@ -10,14 +10,15 @@
 #include <cstdint>
 #include <exception>
 #include <string>
+#include <utility>
 
 struct Exception : public std::exception
 {
     std::string s;
-    explicit Exception(std::string ss): s(ss) {}
-    Exception(std::string function, std::string ss) : s( function + "(): " + ss ) {}
-    ~Exception() throw () {} // Updated
-    const char* what() const throw() override { return s.c_str(); }
+    explicit Exception(std::string ss) noexcept : s(std::move(ss)) {}
+    Exception(const std::string& function, const std::string& ss) noexcept: s( function + "(): " + ss ) {}
+    ~Exception() noexcept override = default; // Updated
+    const char* what() const noexcept override { return s.c_str(); }
 };
 
 #endif // _EXCEPTION_H_
