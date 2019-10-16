@@ -1,6 +1,10 @@
 #ifndef QUEUE_H_
 #define QUEUE_H_
 
+#ifdef __cplusplus
+extern "C" { // Allow module to be used within a C++ application
+#endif
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -79,6 +83,9 @@ bool queue_trash(queue_t* me);
  */
 bool queue_isEmpty(queue_t* me);
 
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif /* QUEUE_H_ */
 
