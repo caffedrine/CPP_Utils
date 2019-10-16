@@ -1,79 +1,12 @@
 #include <stdio.h>
-#include <AnsiColors.h>
+#include <stdint.h>
+#include <TimeUtils.h>
 
-const uint8_t UNSOLVED_SYMBOL = '*';
+#include "SudokuBoard.hpp"
 
-const char *Colors[15] =
-        {
-            ANSI_COLOR_RED_BOLD,
-            ANSI_COLOR_GREEN_BOLD,
-            ANSI_COLOR_YELLOW_BOLD,
-            ANSI_COLOR_BLUE_BOLD,
-            ANSI_COLOR_MAGENTA_BOLD,
-            ANSI_COLOR_CYAN_BOLD,
-            ANSI_COLOR_WHITE_BOLD,
-            ANSI_COLOR_RED_BOLD,
-            ANSI_COLOR_GREEN_BOLD,
-            ANSI_COLOR_YELLOW_BOLD,
-            ANSI_COLOR_BLUE_BOLD,
-            ANSI_COLOR_MAGENTA_BOLD,
-            ANSI_COLOR_CYAN_BOLD,
-            ANSI_COLOR_WHITE_BOLD,
-            ANSI_COLOR_RED_BOLD,
-        };
+const uint8_t BoardSize = 13;
 
-
-class Cell
-{
-public:
-    Cell(char Val, uint8_t Block) : Value(Val), BlockNo(Block), x(255), y(255) {}
-    Cell(char Val, uint8_t X, uint8_t Y, uint8_t Block) : Value(Val), x(X), y(Y), BlockNo(Block) {}
-    
-    bool IsSolved()
-    {
-        return this->Value != UNSOLVED_SYMBOL;
-    }
-    
-    uint8_t GetBlockNo()
-    {
-        return BlockNo;
-    }
-    
-    void SetValue(uint8_t NewVal)
-    {
-        this->Value = NewVal;
-    }
-    
-    
-private:
-    uint8_t Value;
-    const uint8_t x;
-    const uint8_t y;
-    const uint8_t BlockNo;
-};
-
-
-class Block
-{
-public:
-private:
-    uint8_t *Elements;
-};
-
-
-class SudokuTable
-{
-    const uint8_t MAX_SIZE = 15;
-
-};
-
-typedef struct
-{
-    char val;
-    const uint8_t BlockNo;
-}cell_short_t;
-
-cell_short_t CellsMatrix[13][13]  =
+cell_base_t CellsMatrix[BoardSize][BoardSize]  =
         {
             /*Line 0*/  { {'*', 0}, {'a', 0}, {'*', 1}, {'*', 1}, {'d', 1}, {'3', 1}, {'*', 2}, {'*', 2}, {'7', 2}, {'*', 2}, {'*', 3}, {'9', 3}, {'*', 3} },
             /*Line 1*/  { {'4', 0}, {'*', 0}, {'*', 0}, {'*', 1}, {'*', 1}, {'*', 1}, {'*', 2}, {'c', 2}, {'*', 2}, {'7', 3}, {'b', 3}, {'*', 3}, {'*', 3} },
@@ -91,18 +24,12 @@ cell_short_t CellsMatrix[13][13]  =
             
             };
 
-
 int main()
 {
     printf("Inputs:\n");
     
-    for(int i = 0; i < 13; i++)
-    {
-        for(int j = 0; j < 13; j++)
-        {
-            printf( "%s%c " ANSI_COLOR_RESET, Colors[CellsMatrix[i][j].BlockNo], CellsMatrix[i][j].val);
-        }
-        printf("\n");
-    }
+    SudokuBoard board(BoardSize, (cell_base_t *)CellsMatrix);
+    board.Solve();
     
+    return 0;
 }
