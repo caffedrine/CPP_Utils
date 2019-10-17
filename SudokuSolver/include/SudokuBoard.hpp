@@ -37,21 +37,21 @@ class SudokuBoard
     const char *Charset = "123456789abcdef\0";
     const char *AsciiColors[SUDOKU_MAX_SIZE] =
             {
-                    ANSI_COLOR_RED_BOLD,
-                    ANSI_COLOR_GREEN_BOLD,
-                    ANSI_COLOR_BLUE_BOLD,
-                    ANSI_COLOR_MAGENTA_BOLD,
-                    ANSI_COLOR_YELLOW_BOLD,
-                    ANSI_COLOR_CYAN_BOLD,
-                    ANSI_COLOR_WHITE_BOLD,
-                    ANSI_COLOR_RED_BOLD,
-                    ANSI_COLOR_GREEN_BOLD,
-                    ANSI_COLOR_BLUE_BOLD,
-                    ANSI_COLOR_MAGENTA_BOLD,
-                    ANSI_COLOR_YELLOW_BOLD,
-                    ANSI_COLOR_CYAN_BOLD,
-                    ANSI_COLOR_WHITE_BOLD,
-                    ANSI_COLOR_RED_BOLD,
+                    ANSI_COLOR_RED_BG,
+                    ANSI_COLOR_GREEN_BG,
+                    ANSI_COLOR_BLUE_BG,
+                    ANSI_COLOR_MAGENTA_BG,
+                    ANSI_COLOR_YELLOW_BG,
+                    ANSI_COLOR_CYAN_BG,
+                    ANSI_COLOR_RED_BG,
+                    ANSI_COLOR_GREEN_BG,
+                    ANSI_COLOR_BLUE_BG,
+                    ANSI_COLOR_MAGENTA_BG,
+                    ANSI_COLOR_YELLOW_BG,
+                    ANSI_COLOR_CYAN_BG,
+                    ANSI_COLOR_RED_BG,
+                    ANSI_COLOR_GREEN_BG,
+                    ANSI_COLOR_BLUE_BG,
             };
 public:
     SudokuBoard(uint8_t Size_, cell_base_t *Cells) : Size(Size_)
