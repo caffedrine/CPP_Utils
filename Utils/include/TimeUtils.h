@@ -123,17 +123,17 @@ public:
         
         std::string result;
         
-        if(Hours < 9) result += "0";
+        if(Hours <= 9) result += "0";
         result += std::to_string(Hours);
         
         result += ":";
         
-        if(Minutes < 9) result += "0";
+        if(Minutes <= 9) result += "0";
         result += std::to_string(Minutes);
         
         result += ":";
         
-        if(Seconds < 9) result += "0";
+        if(Seconds <= 9) result += "0";
         result += std::to_string(Seconds);
         
         result += ".";

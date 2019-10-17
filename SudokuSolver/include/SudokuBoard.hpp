@@ -24,6 +24,14 @@ typedef struct
     uint8_t BlockNo;
 }cell_base_t;
 
+/** Struct to define a basic cell used by user to input it's data */
+typedef struct
+{
+    char val;
+    uint8_t BlockNo;
+    uint8_t IsAvailable;
+}cell_extended_t;
+
 class SudokuBoard
 {
     const char *Charset = "123456789abcdef\0";
@@ -49,31 +57,31 @@ public:
     SudokuBoard(uint8_t Size_, cell_base_t *Cells) : Size(Size_)
     {
         /* Dynamic allocate memory for cells matrix */
-        this->CellsMatrix = (cell_base_t **)malloc(this->Size * sizeof(cell_base_t *));
-        for(int i = 0; i < this->Size; i++)
-        {
-            this->CellsMatrix[i] = (cell_base_t *)malloc(this->Size * sizeof(cell_base_t));
-        }
+//        this->CellsMatrix = (cell_extended_t **)malloc(this->Size * sizeof(cell_extended_t *));
+//        for(int i = 0; i < this->Size; i++)
+//        {
+//            this->CellsMatrix[i] = (cell_extended_t *)malloc(this->Size * sizeof(cell_extended_t));
+//        }
         
         /* Copy matrix to internal matrix buffer */
         for(int i = 0; i < this->Size; i++)
         {
             for(int j = 0; j <= this->Size; j++)
             {
-                this->CellsMatrix[i][j] = *((Cells+i*this->Size) + j);
+                this->CellsMatrix[i][j].val = (*((Cells+i*this->Size) + j)).val;
+                this->CellsMatrix[i][j].BlockNo = (*((Cells+i*this->Size) + j)).BlockNo;
             }
         }
-        
     }
     
     ~SudokuBoard()
     {
         /* Make clean */
-        for(int i = 0; i < this->Size; i++)
-        {
-            delete this->CellsMatrix[i];
-        }
-        delete[] this->CellsMatrix;
+//        for(int i = 0; i < this->Size; i++)
+//        {
+//            delete this->CellsMatrix[i];
+//        }
+//        delete[] this->CellsMatrix;
     }
     
     
@@ -141,90 +149,194 @@ public:
     
     void Solve()
     {
-        /* counter indicating how many cells were solved */
-        uint16_t cellsSolved = 0;
-        
         /* Reset time counter */
         TimeCounter.Restart();
         this->PrintTimeElapsed();
         this->PrintBoard();
         TimeUtils::Timer displayTimeTimer;
-    
-        bool SolutionPossible = false;
+        
         while( !this->IsSolved() )
         {
-            SolutionPossible = false;
-            for( int y = 0; y < this->Size; y++ )
-            {
-                for( int x = 0; x < this->Size; x++ )
-                {
-                    /* Only loop through unknown symbols */
-                    if( this->GetPossibleSolutions(x, y) == 1 )
-                    {
-                        /* Set a flag indicating that all cells shall be checked again before concluding that sudoku is not possible */
-                        SolutionPossible = true;
-                        
-                        /* We have a winner, increment to know hoq many cells we solved */
-                        cellsSolved++;
-                        
-                        /* Write sollution to corresponding cell */
-                        this->CellsMatrix[x][y].val = this->GetNthSolution(x, y);
+            uint16_t StartProgress = this->CellsSolved;
+            
+            Algo_SafeMoves();
+            if(this->IsSolved()) break;
+            
+            Algo_CheckIntersections();
+            if(this->IsSolved()) break;
     
-                        /* Update visual board containing last solution */
-                        PrintBoard();
-                        TimeUtils::SleepMs(10);
-                    }
-                    
-                    /* Update time elapsed */
-                    if(displayTimeTimer.ElapsedMs() >= 28)
-                    {
-                        displayTimeTimer.Restart();
-                        this->PrintTimeElapsed();
-                    }
-                }/*X*/
-            } /*Y*/
-            if(!SolutionPossible)
+            Algo_Blocks();
+            if(this->IsSolved()) break;
+            
+            /* Update time elapsed */
+            if( displayTimeTimer.ElapsedMs() >= 28 )
             {
-                uint8_t TwoSolutionsCells = 0;
-                for( int y = 0; y < this->Size; y++ )
-                {
-                    for( int x = 0; x < this->Size; x++ )
-                    {
-                        uint8_t SolutionsNumber = this->GetPossibleSolutions(x, y);
-                        if(SolutionsNumber > 0 && SolutionsNumber <= 3)
-                        {
-                            printf("[%d][%d] could have only %d solutions\n", x, y, SolutionsNumber);
-                        }
-                    }
-                }
-                
+                displayTimeTimer.Restart();
+                this->PrintTimeElapsed();
+            }
+            
+            /* Algorithms are blocked...fins something better :) */
+            if( this->CellsSolved == StartProgress )
+            {
                 break;
             }
+            
         }/*while*/
         
-//        this->PrintTimeElapsed();
-//        PrintBoard();
-        if(SolutionPossible == false)
+        this->PrintTimeElapsed();
+        PrintBoard();
+        if(!this->IsSolved())
         {
-            printf("Cells solved: %d. Can's solve from this point...\n", cellsSolved);
+            printf("Cells solved: %d. Can's solve from this point...\n", this->CellsSolved);
+            Print_Info();
         }
-    }
+    } /* Solve() */
     
 protected:
 
 private:
     const uint8_t Size = 0;
-    cell_base_t **CellsMatrix;
+    cell_extended_t CellsMatrix[13][13];//**CellsMatrix;
     TimeUtils::Timer TimeCounter;
+    uint16_t CellsSolved = 0;
+    
+    /* Algorithms to be applied */
+    void Algo_SafeMoves()
+    {
+        for( int y = 0; y < this->Size; y++ )
+        {
+            for( int x = 0; x < this->Size; x++ )
+            {
+                /* Only loop through unknown symbols */
+                if( this->GetPossibleSolutions(x, y) == 1 )
+                {
+                    /* Update status */
+                    this->IncCellsSolved();
+                
+                    /* Write sollution to corresponding cell */
+                    this->CellsMatrix[y][x].val = this->GetNthSolution(x, y);
+                    
+                }
+                
+            }/*X*/
+        } /*Y*/
+    }
+    void Algo_CheckIntersections()
+    {
+        /* Check all intersections to exclude all fields for every char */
+        for(int ChrIdx = 0; ChrIdx < this->Size; ChrIdx++)
+        {
+            /* Make all cells as valid and itterate thru' them and mark those which are invalid */
+            this->SetAvailableOnAllCells(1);
+        
+            char CurrentTryChar = this->Charset[ChrIdx];
+            /* Invalidate all x and y if current element is already contained */
+            for( int y = 0; y < this->Size; y++ )
+            {
+                for( int x = 0; x < this->Size; x++ )
+                {
+                    if(y == x)
+                    {
+                        if( AlreadyOnX(y, CurrentTryChar) )
+                        {
+                            /* Mark all elements on that column as unavailable */
+                            for( int xIdx = 0; xIdx < this->Size; xIdx++ )
+                            {
+                                this->CellsMatrix[y][xIdx].IsAvailable = 0;
+                            }
+                        }
+                        if( AlreadyOnY(x, CurrentTryChar) )
+                        {
+                            /* Mark all elements on that line as unavailable */
+                            for( int yIdx = 0; yIdx < this->Size; yIdx++ )
+                            {
+                                this->CellsMatrix[yIdx][x].IsAvailable = 0;
+                            }
+                        }
+                    }
+                }
+            }
+            /* Invalidate all elements from a cell if current char is already there */
+            for(int blockIdx = 0; blockIdx < this->Size; blockIdx++)
+            {
+                if(AlreadyOnBlock(blockIdx, CurrentTryChar))
+                {
+                    for( int y = 0; y < this->Size; y++ )
+                    {
+                        for( int x = 0; x < this->Size; x++ )
+                        {
+                            if( this->CellsMatrix[y][x].BlockNo == blockIdx )
+                            {
+                                this->CellsMatrix[y][x].IsAvailable = 0;
+                            }
+                        }
+                    }
+                }
+            }
+        
+            /* Now loop through all block and check whether there is only one element available - that would be an solution */
+            for(int blockIdx = 0; blockIdx < this->Size; blockIdx++)
+            {
+                if( GetAvailableCellsOnBlock(blockIdx) == 1 )
+                {
+                    this->IncCellsSolved();
+                
+                    for( int y = 0; y < this->Size; y++ )
+                    {
+                        for( int x = 0; x < this->Size; x++ )
+                        {
+                            if( this->CellsMatrix[x][y].BlockNo == blockIdx )
+                            {
+                                if( this->CellsMatrix[x][y].IsAvailable == 1 )
+                                {
+                                    this->CellsMatrix[x][y].val = CurrentTryChar;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        
+        } /* For every char in charset */
+    }
+    
+    void Algo_Blocks()
+    {
+    
+    }
+    
+    
+    void Print_Info()
+    {
+        uint8_t TwoSolutionsCells = 0;
+        for( int y = 0; y < this->Size; y++ )
+        {
+            for( int x = 0; x < this->Size; x++ )
+            {
+                uint8_t SolutionsNumber = this->GetPossibleSolutions(x, y);
+                if(SolutionsNumber > 0 && SolutionsNumber <= 3 )
+                {
+                    printf("[%d][%d] could have only %d solutions\n", y, x, SolutionsNumber);
+                }
+            }
+        }
+    }
     
     /* Basic solving when for 1 possibility in a cell */
+    void IncCellsSolved()
+    {
+        this->CellsSolved++;
+        /* Update visual board containing last solution */
+        PrintBoard();
+    }
     bool IsSolved()
     {
-        for(int i = 0; i < this->Size; i++)
+        for(int y = 0; y < this->Size; y++)
         {
-            for( int j = 0; j < this->Size; j++ )
+            for( int x = 0; x < this->Size; x++ )
             {
-                if( this->CellsMatrix[i][j].val == UNSOLVED_SYMBOL )
+                if( this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL )
                 {
                     return false;
                 }
@@ -232,13 +344,25 @@ private:
         }
         return true;
     }
+    bool IsPossibleSolution(uint8_t x, uint8_t y, char Solution)
+    {
+        /* Check whether it's safe to place this symbol on this vox */
+        if( !this->AlreadyOnX(y, Solution) &&
+            !this->AlreadyOnY(x, Solution) &&
+            !this->AlreadyOnBlock(this->CellsMatrix[x][y].BlockNo, Solution) &&
+            this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL)
+        {
+            return true;
+        }
+        return false;
+    }
     bool AlreadyOnBlock(uint8_t BlockId, char TargetChar)
     {
-        for(int i = 0; i < this->Size; i++)
+        for(int y = 0; y < this->Size; y++)
         {
-            for( int j = 0; j < this->Size; j++ )
+            for( int x = 0; x < this->Size; x++ )
             {
-                if( this->CellsMatrix[i][j].BlockNo == BlockId && this->CellsMatrix[i][j].val == TargetChar)
+                if( this->CellsMatrix[y][x].BlockNo == BlockId && this->CellsMatrix[y][x].val == TargetChar)
                 {
                     return true;
                 }
@@ -248,10 +372,10 @@ private:
     }
     bool AlreadyOnX(uint8_t CurrY, char TargetChar)
     {
-        for(int i = 0; i < this->Size; i++)
+        for(int x = 0; x < this->Size; x++)
         {
             /* Skip current element */
-            if( this->CellsMatrix[i][CurrY].val == TargetChar )
+            if( this->CellsMatrix[CurrY][x].val == TargetChar )
             {
                 return true;
             }
@@ -260,10 +384,10 @@ private:
     }
     bool AlreadyOnY(uint8_t CurrX, char TargetChar)
     {
-        for(int i = 0; i < this->Size; i++)
+        for(int y = 0; y < this->Size; y++)
         {
             /* Skip current element */
-            if( this->CellsMatrix[CurrX][i].val == TargetChar )
+            if( this->CellsMatrix[y][CurrX].val == TargetChar )
             {
                 return true;
             }
@@ -273,7 +397,7 @@ private:
     uint8_t GetPossibleSolutions(uint8_t x, uint8_t y)
     {
         uint8_t PossibleSollutions = 0;
-        if( this->CellsMatrix[x][y].val == UNSOLVED_SYMBOL )
+        if( this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL )
         {
             for( int TryCharIdx = 0; TryCharIdx < this->Size; TryCharIdx++ )
             {
@@ -282,7 +406,7 @@ private:
                 /* Check whether it's safe to place this symbol on this vox */
                 if( !this->AlreadyOnX(y, CurrentTryChar) &&
                     !this->AlreadyOnY(x, CurrentTryChar) &&
-                    !this->AlreadyOnBlock(this->CellsMatrix[x][y].BlockNo, CurrentTryChar) )
+                    !this->AlreadyOnBlock(this->CellsMatrix[y][x].BlockNo, CurrentTryChar) )
                 {
                     PossibleSollutions++;
                 }
@@ -292,7 +416,7 @@ private:
     }
     char GetNthSolution(uint8_t x, uint8_t y, uint8_t NTh = 0)
     {
-        if( this->CellsMatrix[x][y].val == UNSOLVED_SYMBOL )    /* If cell is still unsolved */
+        if( this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL )    /* If cell is still unsolved */
         {
             uint8_t PossibleSollutions = 0;
             for( int TryCharIdx = 0; TryCharIdx < this->Size; TryCharIdx++ )
@@ -302,7 +426,7 @@ private:
                 /* Check whether it's safe to place this symbol on this vox */
                 if( !this->AlreadyOnX(y, CurrentTryChar) &&
                     !this->AlreadyOnY(x, CurrentTryChar) &&
-                    !this->AlreadyOnBlock(this->CellsMatrix[x][y].BlockNo, CurrentTryChar) )
+                    !this->AlreadyOnBlock(this->CellsMatrix[y][x].BlockNo, CurrentTryChar) )
                 {
                     if( PossibleSollutions == NTh )
                     {
@@ -313,11 +437,40 @@ private:
                 }
             }
         }
-        return this->CellsMatrix[x][y].val;
+        return this->CellsMatrix[y][x].val;
     }
     /* Advanced solving */
-    
-
+    uint8_t GetAvailableCellsOnBlock(uint8_t BlockId)
+    {
+        uint8_t Result = 0;
+        for( int y = 0; y < this->Size; y++ )
+        {
+            for( int x = 0; x < this->Size; x++ )
+            {
+                if( this->CellsMatrix[y][x].BlockNo == BlockId )
+                {
+                    if(this->CellsMatrix[y][x].IsAvailable == 1)
+                    {
+                        Result++;
+                    }
+                }
+            }
+        }
+        return Result;
+    }
+    uint8_t SetAvailableOnAllCells(uint8_t available)
+    {
+        for( int y = 0; y < this->Size; y++ )
+        {
+            for( int x = 0; x < this->Size; x++ )
+            {
+                if( this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL )
+                    this->CellsMatrix[y][x].IsAvailable = 0;
+                else
+                    this->CellsMatrix[y][x].IsAvailable = available;
+            }
+        }
+    }
 };
 
 #endif // _SUDOKUBOARD_H_
