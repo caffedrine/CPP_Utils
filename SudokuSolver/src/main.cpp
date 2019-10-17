@@ -26,8 +26,6 @@ cell_base_t CellsMatrix[BoardSize][BoardSize]  =
 
 int main()
 {
-    printf("Inputs:\n");
-    
     SudokuBoard board(BoardSize, (cell_base_t *)CellsMatrix);
     board.Solve();
     

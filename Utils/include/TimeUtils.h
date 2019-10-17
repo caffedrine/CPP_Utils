@@ -67,6 +67,11 @@ static std::string formatted_time_now()
 class Timer
 {
 public:
+    Timer()
+    {
+        this->Restart();
+    }
+    
 	void Restart()
 	{
 		this->_PreviousUs.store( std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() );
@@ -93,6 +98,50 @@ public:
 	{
 		return (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() - this->_PreviousUs.load());
 	}
+	
+	std::string ElapsedTimeString()
+    {
+        long Hours = 0, Minutes = 0, Seconds = 0, Milliseconds = 0;
+        
+        if(this->ElapsedMs() >= 1000)
+        {
+            Seconds = this->ElapsedMs() / 1000;
+            Milliseconds = this->ElapsedMs() % 1000;
+        }
+        
+        if(Seconds >= 60)
+        {
+            Minutes = Seconds / 60;
+            Seconds = Seconds % 60;
+        }
+        
+        if(Minutes >= 60)
+        {
+            Hours = Minutes/60;
+            Minutes = Minutes%60;
+        }
+        
+        std::string result;
+        
+        if(Hours < 9) result += "0";
+        result += std::to_string(Hours);
+        
+        result += ":";
+        
+        if(Minutes < 9) result += "0";
+        result += std::to_string(Minutes);
+        
+        result += ":";
+        
+        if(Seconds < 9) result += "0";
+        result += std::to_string(Seconds);
+        
+        result += ".";
+        
+        result += std::to_string(Milliseconds);
+        
+        return result;
+    }
 	
 private:
 	std::atomic<long> _PreviousUs;
