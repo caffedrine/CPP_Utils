@@ -168,6 +168,9 @@ public:
     
             Algo_ColumnsAndRowsPossibilities();
             if(this->IsSolved()) break;
+    
+            Algo_Next();
+            if(this->IsSolved()) break;
             
             /* Update time elapsed */
             if( displayTimeTimer.ElapsedMs() >= 28 )
@@ -533,6 +536,10 @@ private:
         int dummyBreakpoint = 0;
     }
     
+    void Algo_Next()
+    {
+    
+    }
     
     void Print_Info()
     {
@@ -583,19 +590,6 @@ private:
         }
         return false;
     }
-    
-    uint8_t CharFromCharsetToIndex(char c)
-    {
-        for( int index = 0; index < this->Size; index++)
-        {
-            if( this->Charset[index] == c)
-            {
-                return index;
-            }
-        }
-        throw Exception("CharFromCharsetToIndex", "Char not present into array");
-    }
-    
     bool AlreadyOnBlock(uint8_t BlockId, char TargetChar)
     {
         for(int y = 0; y < this->Size; y++)
@@ -678,6 +672,17 @@ private:
             }
         }
         return this->CellsMatrix[y][x].val;
+    }
+    uint8_t CharFromCharsetToIndex(char c)
+    {
+        for( int index = 0; index < this->Size; index++)
+        {
+            if( this->Charset[index] == c)
+            {
+                return index;
+            }
+        }
+        throw Exception("CharFromCharsetToIndex", "Char not present into array");
     }
     /* Advanced solving */
     uint8_t GetAvailableCellsOnBlock(uint8_t BlockId)
