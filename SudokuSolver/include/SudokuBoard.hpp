@@ -84,7 +84,6 @@ public:
 //        delete[] this->CellsMatrix;
     }
     
-    
     void PrintTimeElapsed()
     {
         static bool FirstPrint = true;
@@ -221,16 +220,19 @@ private:
             }/*X*/
         } /*Y*/
     }
+    
     void Algo_CheckIntersections()
     {
-        /* Check all intersections to exclude all fields for every char */
+        /* Itterate through all symbols */
         for(int ChrIdx = 0; ChrIdx < this->Size; ChrIdx++)
         {
+            /* Current symbol */
+            char CurrentTryChar = this->Charset[ChrIdx];
+    
             /* Make all cells as valid and itterate thru' them and mark those which are invalid */
             this->SetAvailableOnAllCells(1);
         
-            char CurrentTryChar = this->Charset[ChrIdx];
-            /* Invalidate all x and y if current element is already contained */
+            /* Invalidate all lines and columns if already contain our symbol */
             for( int y = 0; y < this->Size; y++ )
             {
                 for( int x = 0; x < this->Size; x++ )
@@ -253,31 +255,136 @@ private:
                                 this->CellsMatrix[yIdx][x].IsAvailable = 0;
                             }
                         }
-                    }
-                }
-            }
-            /* Invalidate all elements from a cell if current char is already there */
-            for(int blockIdx = 0; blockIdx < this->Size; blockIdx++)
-            {
-                if(AlreadyOnBlock(blockIdx, CurrentTryChar))
-                {
-                    for( int y = 0; y < this->Size; y++ )
-                    {
-                        for( int x = 0; x < this->Size; x++ )
-                        {
-                            if( this->CellsMatrix[y][x].BlockNo == blockIdx )
-                            {
-                                this->CellsMatrix[y][x].IsAvailable = 0;
-                            }
-                        }
-                    }
-                }
-            }
+                    }/*x==y*/
+                }/* for x */
+            }/* for y */
+
+            
+//            /* Invalidate all elements from a cell if current char is already contained */
+//            for(int blockIdx = 0; blockIdx < this->Size; blockIdx++)
+//            {
+//                if(AlreadyOnBlock(blockIdx, CurrentTryChar))
+//                {
+//                    for( int y = 0; y < this->Size; y++ )
+//                    {
+//                        for( int x = 0; x < this->Size; x++ )
+//                        {
+//                            if( this->CellsMatrix[y][x].BlockNo == blockIdx )
+//                            {
+//                                this->CellsMatrix[y][x].IsAvailable = 0;
+//                            }
+//                        }
+//                    }
+//                }
+//            }
         
             /* Now loop through all block and check whether there is only one element available - that would be an solution */
             for(int blockIdx = 0; blockIdx < this->Size; blockIdx++)
             {
-                if( GetAvailableCellsOnBlock(blockIdx) == 1 )
+                /* After all intersections there is only one cell remaining. If Currentchar is not conteinted by the block, then we have a solution */
+                if( GetAvailableCellsOnBlock(blockIdx) == 1  && !AlreadyOnBlock(blockIdx, CurrentTryChar) )
+                {
+                    this->IncCellsSolved();
+
+                    for( int y = 0; y < this->Size; y++ )
+                    {
+                        for( int x = 0; x < this->Size; x++ )
+                        {
+                            if( this->CellsMatrix[x][y].BlockNo == blockIdx )
+                            {
+                                if( this->CellsMatrix[x][y].IsAvailable == 1 )
+                                {
+                                    this->CellsMatrix[x][y].val = CurrentTryChar;
+                                    this->CellsMatrix[x][y].IsAvailable = 0;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+            
+            
+//            /* Print debugging matrix */
+//            printf("\n Current character: '%c' - available pozitions\n", CurrentTryChar);
+//            for(int y = 0; y < this->Size; y++)
+//            {
+//                for( int x = 0; x < this->Size; x++)
+//                {
+//                    printf("%s%d " ANSI_COLOR_RESET, AsciiColors[CellsMatrix[y][x].BlockNo], this->CellsMatrix[y][x].IsAvailable);
+//                }
+//                printf("\n");
+//            }
+//            printf("\n");
+//            fflush(stdout);
+            
+        
+        } /* For every char in charset */
+        int dummyBreak = 0;
+    }
+    
+    void Algo_Blocks()
+    {
+        /* Itterate through all symbols */
+        for(int ChrIdx = 0; ChrIdx < this->Size; ChrIdx++)
+        {
+            /* Current symbol */
+            char CurrentTryChar = this->Charset[ChrIdx];
+        
+            /* Make all cells as valid and itterate thru' them and mark those which are invalid */
+            this->SetAvailableOnAllCells(1);
+        
+            /* Invalidate all lines and columns if already contain our symbol */
+            for( int y = 0; y < this->Size; y++ )
+            {
+                for( int x = 0; x < this->Size; x++ )
+                {
+                    if(y == x)
+                    {
+                        if( AlreadyOnX(y, CurrentTryChar) )
+                        {
+                            /* Mark all elements on that column as unavailable */
+                            for( int xIdx = 0; xIdx < this->Size; xIdx++ )
+                            {
+                                this->CellsMatrix[y][xIdx].IsAvailable = 0;
+                            }
+                        }
+                        if( AlreadyOnY(x, CurrentTryChar) )
+                        {
+                            /* Mark all elements on that line as unavailable */
+                            for( int yIdx = 0; yIdx < this->Size; yIdx++ )
+                            {
+                                this->CellsMatrix[yIdx][x].IsAvailable = 0;
+                            }
+                        }
+                    }/*x==y*/
+                }/* for x */
+            }/* for y */
+
+
+//            /* Invalidate all elements from a cell if current char is already contained */
+//            for(int blockIdx = 0; blockIdx < this->Size; blockIdx++)
+//            {
+//                if(AlreadyOnBlock(blockIdx, CurrentTryChar))
+//                {
+//                    for( int y = 0; y < this->Size; y++ )
+//                    {
+//                        for( int x = 0; x < this->Size; x++ )
+//                        {
+//                            if( this->CellsMatrix[y][x].BlockNo == blockIdx )
+//                            {
+//                                this->CellsMatrix[y][x].IsAvailable = 0;
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+        
+            /* Now loop through all block and check whether there is only one element available - that would be an solution */
+            for(int blockIdx = 0; blockIdx < this->Size; blockIdx++)
+            {
+                /* After all intersections there is only one cell remaining. If Currentchar is not conteinted by the block, then we have a solution */
+                if( GetAvailableCellsOnBlock(blockIdx) == 1  && !AlreadyOnBlock(blockIdx, CurrentTryChar) )
                 {
                     this->IncCellsSolved();
                 
@@ -290,6 +397,7 @@ private:
                                 if( this->CellsMatrix[x][y].IsAvailable == 1 )
                                 {
                                     this->CellsMatrix[x][y].val = CurrentTryChar;
+                                    this->CellsMatrix[x][y].IsAvailable = 0;
                                 }
                             }
                         }
@@ -297,13 +405,24 @@ private:
                     break;
                 }
             }
+
+
+//            /* Print debugging matrix */
+//            printf("\n Current character: '%c' - available pozitions\n", CurrentTryChar);
+//            for(int y = 0; y < this->Size; y++)
+//            {
+//                for( int x = 0; x < this->Size; x++)
+//                {
+//                    printf("%s%d " ANSI_COLOR_RESET, AsciiColors[CellsMatrix[y][x].BlockNo], this->CellsMatrix[y][x].IsAvailable);
+//                }
+//                printf("\n");
+//            }
+//            printf("\n");
+//            fflush(stdout);
+        
         
         } /* For every char in charset */
-    }
-    
-    void Algo_Blocks()
-    {
-    
+        int dummyBreak = 0;
     }
     
     
@@ -465,9 +584,13 @@ private:
             for( int x = 0; x < this->Size; x++ )
             {
                 if( this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL )
+                {
                     this->CellsMatrix[y][x].IsAvailable = 0;
+                }
                 else
+                {
                     this->CellsMatrix[y][x].IsAvailable = available;
+                }
             }
         }
     }
