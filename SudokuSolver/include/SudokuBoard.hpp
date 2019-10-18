@@ -13,6 +13,8 @@
 
 #include <AnsiColors.h>
 #include <TimeUtils.h>
+#include <cstring>
+#include <Exception.h>
 
 #define UNSOLVED_SYMBOL     '*'
 #define SUDOKU_MAX_SIZE     15
@@ -164,7 +166,7 @@ public:
             Algo_CheckIntersections();
             if(this->IsSolved()) break;
     
-            Algo_Blocks();
+            Algo_ColumnsAndRowsPossibilities();
             if(this->IsSolved()) break;
             
             /* Update time elapsed */
@@ -323,106 +325,212 @@ private:
         int dummyBreak = 0;
     }
     
-    void Algo_Blocks()
+    void Algo_ColumnsAndRowsPossibilities()
     {
-        /* Itterate through all symbols */
-        for(int ChrIdx = 0; ChrIdx < this->Size; ChrIdx++)
+        /* Based on this method:
+         * https://www.youtube.com/watch?v=ld0hChtBLno&t=592s
+         * */
+        
+        /* Array to store number of possibilities for each cell */
+        char Possibilities[SUDOKU_MAX_SIZE][SUDOKU_MAX_SIZE] = {0};
+        
+        /** *********************** */
+        /* Checking the lines first */
+        for( int y = 0; y < this->Size; y++ ) /* Each line */
         {
-            /* Current symbol */
-            char CurrentTryChar = this->Charset[ChrIdx];
-        
-            /* Make all cells as valid and itterate thru' them and mark those which are invalid */
-            this->SetAvailableOnAllCells(1);
-        
-            /* Invalidate all lines and columns if already contain our symbol */
-            for( int y = 0; y < this->Size; y++ )
+            /* Initialize array which will remember all possibilities */
+            memset(Possibilities, 0, sizeof(Possibilities));
+            
+            for( int x = 0; x < this->Size; x++ ) /* Each element from line */
             {
-                for( int x = 0; x < this->Size; x++ )
-                {
-                    if(y == x)
-                    {
-                        if( AlreadyOnX(y, CurrentTryChar) )
-                        {
-                            /* Mark all elements on that column as unavailable */
-                            for( int xIdx = 0; xIdx < this->Size; xIdx++ )
-                            {
-                                this->CellsMatrix[y][xIdx].IsAvailable = 0;
-                            }
-                        }
-                        if( AlreadyOnY(x, CurrentTryChar) )
-                        {
-                            /* Mark all elements on that line as unavailable */
-                            for( int yIdx = 0; yIdx < this->Size; yIdx++ )
-                            {
-                                this->CellsMatrix[yIdx][x].IsAvailable = 0;
-                            }
-                        }
-                    }/*x==y*/
-                }/* for x */
-            }/* for y */
-
-
-//            /* Invalidate all elements from a cell if current char is already contained */
-//            for(int blockIdx = 0; blockIdx < this->Size; blockIdx++)
-//            {
-//                if(AlreadyOnBlock(blockIdx, CurrentTryChar))
-//                {
-//                    for( int y = 0; y < this->Size; y++ )
-//                    {
-//                        for( int x = 0; x < this->Size; x++ )
-//                        {
-//                            if( this->CellsMatrix[y][x].BlockNo == blockIdx )
-//                            {
-//                                this->CellsMatrix[y][x].IsAvailable = 0;
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-        
-            /* Now loop through all block and check whether there is only one element available - that would be an solution */
-            for(int blockIdx = 0; blockIdx < this->Size; blockIdx++)
-            {
-                /* After all intersections there is only one cell remaining. If Currentchar is not conteinted by the block, then we have a solution */
-                if( GetAvailableCellsOnBlock(blockIdx) == 1  && !AlreadyOnBlock(blockIdx, CurrentTryChar) )
-                {
-                    this->IncCellsSolved();
+                int PossibilitiesIndex = 0;
                 
-                    for( int y = 0; y < this->Size; y++ )
+                /* If is already solved then go to next cell */
+                if(this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL)
+                    continue;
+                
+                /* Try each possible symbol and see how many of them could be here */
+                for(int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
+                {
+                    char CurrentSymbol = this->Charset[chrIdx];
+                    if( IsPossibleSolution(x, y, CurrentSymbol) )
                     {
-                        for( int x = 0; x < this->Size; x++ )
-                        {
-                            if( this->CellsMatrix[x][y].BlockNo == blockIdx )
-                            {
-                                if( this->CellsMatrix[x][y].IsAvailable == 1 )
-                                {
-                                    this->CellsMatrix[x][y].val = CurrentTryChar;
-                                    this->CellsMatrix[x][y].IsAvailable = 0;
-                                }
-                            }
-                        }
+                        Possibilities[x][PossibilitiesIndex++] = CurrentSymbol;
                     }
-                    break;
                 }
             }
+            
+            /* Next thing to check is to identify the number that is not repeating. */
+            char Unique = '-';
+            uint8_t Apparitions[SUDOKU_MAX_SIZE] = {0};
+            
+            for( int x = 0; x < this->Size; x++ )
+            {
+                if(this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL)
+                    continue;
+                
+                for(int i = 0; i < SUDOKU_MAX_SIZE; i++)
+                {
+                    if( Possibilities[x][i] == 0 ) /* Last element or no elements */
+                        break;
+                        
+                    char currSymbol = Possibilities[x][i];
+                    uint8_t currSymbolIndex = this->CharFromCharsetToIndex(currSymbol);
+                    Apparitions[currSymbolIndex]++;
+                }
+            }
+            
+            /* Check for possible solutions */
+            for(int apparitionsIdx = 0; apparitionsIdx < this->Size; apparitionsIdx++)
+            {
+                if( Apparitions[apparitionsIdx] == 1 )
+                {
+                    Unique = this->Charset[apparitionsIdx];
 
-
-//            /* Print debugging matrix */
-//            printf("\n Current character: '%c' - available pozitions\n", CurrentTryChar);
-//            for(int y = 0; y < this->Size; y++)
+                    /* Fill the table with new discovered solution and propagate result*/
+                    this->IncCellsSolved();
+                    for( int x = 0; x < this->Size; x++ )
+                    {
+                        if( this->IsPossibleSolution(x, y, Unique) )
+                        {
+                            this->CellsMatrix[y][x].val = Unique;
+                            return; // Leave the function to reset algo
+                        }
+        
+                    }/* each x */
+                }
+            }
+            
+            
+            /* At this point, we have an array with all possibilities for all cells on the current row */
+//            printf("Line: %d\n", y);
+//            for( int x = 0; x < this->Size; x++ )
 //            {
-//                for( int x = 0; x < this->Size; x++)
+//                if(this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL)
+//                    continue;
+//
+//                printf("\tRow %d: ", x);
+//                for(int i = 0; i < SUDOKU_MAX_SIZE; i++)
 //                {
-//                    printf("%s%d " ANSI_COLOR_RESET, AsciiColors[CellsMatrix[y][x].BlockNo], this->CellsMatrix[y][x].IsAvailable);
+//                    if( Possibilities[x][i] == 0 ) /* Last element or no elements */
+//                        break;
+//                    printf( "%c ", Possibilities[x][i] );
 //                }
 //                printf("\n");
 //            }
-//            printf("\n");
-//            fflush(stdout);
+//
+//            printf("\tUnique solution: '%c'\n", Unique);
+//            printf("\tAparitions: \n");
+//            for(int i = 0; i < this->Size; i++)
+//            {
+//                if( Apparitions[i] > 0 )
+//                {
+//                    printf("\t\t'%c' = %d\n", this->Charset[i], Apparitions[i] );
+//                }
+//            }
+            printf("\n");
+            fflush(stdout);
+        }
+    
+        int dummyBreakpoint2 = 0;
         
+        /** *******************  */
+        /* Checking the collumns */
+        for( int x = 0; x < this->Size; x++ ) /* Each column */
+        {
+            /* Initialize array which will remember all possibilities */
+            memset(Possibilities, 0, sizeof(Possibilities));
         
-        } /* For every char in charset */
-        int dummyBreak = 0;
+            for( int y = 0; y < this->Size; y++ ) /* Each element from line */
+            {
+                int PossibilitiesIndex = 0;
+            
+                /* If is already solved then go to next cell */
+                if(this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL)
+                    continue;
+            
+                /* Try each possible symbol and see how many of them could be here */
+                for(int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
+                {
+                    char CurrentSymbol = this->Charset[chrIdx];
+                    if( IsPossibleSolution(x, y, CurrentSymbol) )
+                    {
+                        Possibilities[y][PossibilitiesIndex++] = CurrentSymbol;
+                    }
+                }
+            }
+    
+            /* Next thing to check is to identify the number that is not repeating. */
+            char Unique = '-';
+            uint8_t Apparitions[SUDOKU_MAX_SIZE] = {0};
+    
+            for( int y = 0; y < this->Size; y++ )
+            {
+                if(this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL)
+                    continue;
+        
+                for(int i = 0; i < SUDOKU_MAX_SIZE; i++)
+                {
+                    if( Possibilities[y][i] == 0 ) /* Last element or no elements */
+                        break;
+            
+                    char currSymbol = Possibilities[y][i];
+                    uint8_t currSymbolIndex = this->CharFromCharsetToIndex(currSymbol);
+                    Apparitions[currSymbolIndex]++;
+                }
+            }
+            for(int i = 0; i < this->Size; i++)
+            {
+                if( Apparitions[i] == 1 )
+                {
+                    Unique = this->Charset[i];
+    
+                    /* Fill the table with new discovered solution and propagate result*/
+                    this->IncCellsSolved();
+                    for( int y = 0; y < this->Size; y++ )
+                    {
+                        if( this->IsPossibleSolution(x, y, Unique) )
+                        {
+                            this->CellsMatrix[y][x].val = Unique;
+                            return; // Leave the function to reset algo
+                        }
+        
+                    }/* each x */
+                }
+            }
+        
+//            /* At this point, we have an array with all posibilities for all cells on the current column */
+//            printf("Col: %d\n", x);
+//            for( int y = 0; y < this->Size; y++ )
+//            {
+//                if(this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL)
+//                    continue;
+//
+//                printf("\tRow %d: ", y);
+//                for(int i = 0; i < SUDOKU_MAX_SIZE; i++)
+//                {
+//                    if( Possibilities[y][i] == 0 ) /* Last element or no elements */
+//                        break;
+//                    printf( "%c ", Possibilities[y][i] );
+//                }
+//                printf("\n");
+//            }
+//
+//            printf("\tUnique solution: '%c'\n", Unique);
+//            printf("\tAparitions: \n");
+//            for(int i = 0; i < this->Size; i++)
+//            {
+//                if( Apparitions[i] > 0 )
+//                {
+//                    printf("\t\t'%c' = %d\n", this->Charset[i], Apparitions[i] );
+//                }
+//            }
+
+            printf("\n");
+            fflush(stdout);
+        }
+        
+        int dummyBreakpoint = 0;
     }
     
     
@@ -468,13 +576,26 @@ private:
         /* Check whether it's safe to place this symbol on this vox */
         if( !this->AlreadyOnX(y, Solution) &&
             !this->AlreadyOnY(x, Solution) &&
-            !this->AlreadyOnBlock(this->CellsMatrix[x][y].BlockNo, Solution) &&
+            !this->AlreadyOnBlock(this->CellsMatrix[y][x].BlockNo, Solution) &&
             this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL)
         {
             return true;
         }
         return false;
     }
+    
+    uint8_t CharFromCharsetToIndex(char c)
+    {
+        for( int index = 0; index < this->Size; index++)
+        {
+            if( this->Charset[index] == c)
+            {
+                return index;
+            }
+        }
+        throw Exception("CharFromCharsetToIndex", "Char not present into array");
+    }
+    
     bool AlreadyOnBlock(uint8_t BlockId, char TargetChar)
     {
         for(int y = 0; y < this->Size; y++)
