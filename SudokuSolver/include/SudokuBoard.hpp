@@ -26,17 +26,9 @@ typedef struct
     uint8_t BlockNo;
 }cell_base_t;
 
-/** Struct to define a basic cell used by user to input it's data */
-typedef struct
-{
-    char val;
-    uint8_t BlockNo;
-    uint8_t IsAvailable;
-}cell_extended_t;
-
 class SudokuBoard
 {
-    const char *Charset = "123456789abcdef\0";
+    const char *Charset = "123456789abcdef\0"; //!< Must NOT contain 0 (zero)
     const char *AsciiColors[SUDOKU_MAX_SIZE] =
             {
                     ANSI_COLOR_RED_BG,
@@ -55,6 +47,35 @@ class SudokuBoard
                     ANSI_COLOR_GREEN_BG,
                     ANSI_COLOR_BLUE_BG,
             };
+    
+    typedef struct
+    {
+        uint8_t x;
+        uint8_t y;
+    }coord_t;
+    
+    typedef struct
+    {
+        coord_t element1;
+        coord_t element2;
+        char Val;
+    }small_pair_t;
+    
+    typedef struct
+    {
+        char Val;
+        coord_t Coord;
+    }possibility_t;
+
+    /** Struct to define a basic cell used by user to input it's data */
+    typedef struct
+    {
+        char val;
+        uint8_t BlockNo;
+        uint8_t IsAvailable;
+        possibility_t PossibleSolutions[SUDOKU_MAX_SIZE];
+    }cell_extended_t;
+    
 public:
     SudokuBoard(uint8_t Size_, cell_base_t *Cells) : Size(Size_)
     {
@@ -159,6 +180,9 @@ public:
         while( !this->IsSolved() )
         {
             uint16_t StartProgress = this->CellsSolved;
+    
+            Algo_UpdateSmallPairs();
+            if(this->IsSolved()) break;
             
             Algo_SafeMoves();
             if(this->IsSolved()) break;
@@ -168,9 +192,6 @@ public:
     
             Algo_ColumnsAndRowsPossibilities();
             if(this->IsSolved()) break;
-    
-            Algo_Next();
-            if(this->IsSolved()) break;
             
             /* Update time elapsed */
             if( displayTimeTimer.ElapsedMs() >= 28 )
@@ -179,7 +200,7 @@ public:
                 this->PrintTimeElapsed();
             }
             
-            /* Algorithms are blocked...fins something better :) */
+            /* Algorithms are blocked...find something better :) */
             if( this->CellsSolved == StartProgress )
             {
                 break;
@@ -212,7 +233,7 @@ private:
             for( int x = 0; x < this->Size; x++ )
             {
                 /* Only loop through unknown symbols */
-                if( this->GetPossibleSolutions(x, y) == 1 )
+                if( this->GetAllPossibleSolutions(x, y) == 1 )
                 {
                     /* Update status */
                     this->IncCellsSolved();
@@ -536,10 +557,28 @@ private:
         int dummyBreakpoint = 0;
     }
     
-    void Algo_Next()
+    void Algo_UpdateSmallPairs()
     {
-    
-    }
+        for( int BlockId = 0; BlockId < this->Size; BlockId++ ) /* Loop through all blocks */
+        {
+            /* Matrix containing pairs of cells that are on the same line/row */
+            small_pair_t SmallPairsFound[SUDOKU_MAX_SIZE] = {{0,0}, {0,0}, 0};
+            this->GetSmallPairs(BlockId, SmallPairsFound);
+            
+            /* Display symbols */
+            printf("Block: %d, small cells:\n", BlockId);
+            for(int idx = 0; idx < this->Size; idx++)
+            {
+                small_pair_t pair = SmallPairsFound[idx];
+                if(pair.Val == 0) break;
+                printf("\t'%c' = [%d][%d], [%d][%d]\n", pair.Val, pair.element1.y, pair.element1.x, pair.element2.y, pair.element2.x);
+                
+            }
+            printf("\n");
+            
+            int dummy = 0;
+        }/* for each block */
+    }/*void Algo_UpdateSmallPairs()*/
     
     void Print_Info()
     {
@@ -548,7 +587,7 @@ private:
         {
             for( int x = 0; x < this->Size; x++ )
             {
-                uint8_t SolutionsNumber = this->GetPossibleSolutions(x, y);
+                uint8_t SolutionsNumber = this->GetAllPossibleSolutions(x, y);
                 if(SolutionsNumber > 0 && SolutionsNumber <= 3 )
                 {
                     printf("[%d][%d] could have only %d solutions\n", y, x, SolutionsNumber);
@@ -628,7 +667,7 @@ private:
         }
         return false;
     }
-    uint8_t GetPossibleSolutions(uint8_t x, uint8_t y)
+    uint8_t GetAllPossibleSolutions(uint8_t x, uint8_t y, possibility_t *PossibleSolutionsBuffer = nullptr)
     {
         uint8_t PossibleSollutions = 0;
         if( this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL )
@@ -642,7 +681,18 @@ private:
                     !this->AlreadyOnY(x, CurrentTryChar) &&
                     !this->AlreadyOnBlock(this->CellsMatrix[y][x].BlockNo, CurrentTryChar) )
                 {
-                    PossibleSollutions++;
+                    if( PossibleSolutionsBuffer != nullptr )
+                    {
+                        possibility_t possibility;
+                        possibility.Val = CurrentTryChar;
+                        possibility.Coord.y = y;
+                        possibility.Coord.x = x;
+                        PossibleSolutionsBuffer[ PossibleSollutions ++ ] = possibility;
+                    }
+                    else
+                    {
+                        PossibleSollutions++;
+                    }
                 }
             }
         }
@@ -684,6 +734,24 @@ private:
         }
         throw Exception("CharFromCharsetToIndex", "Char not present into array");
     }
+    void GetBlockElements(uint8_t in_GroupId, coord_t *out_Elements)
+    {
+        uint8_t ElementsIndex = 0;
+        coord_t tmpCoord;
+        
+        for( int y = 0; y < this-> Size; y++ )
+        {
+            for( int x = 0; x < this->Size; x++ )
+            {
+                if(this->CellsMatrix[y][x].BlockNo == in_GroupId)
+                {
+                    tmpCoord.x = x;
+                    tmpCoord.y = y;
+                    out_Elements[ElementsIndex++] = tmpCoord;
+                }
+            }
+        }
+    }
     /* Advanced solving */
     uint8_t GetAvailableCellsOnBlock(uint8_t BlockId)
     {
@@ -719,6 +787,160 @@ private:
                 }
             }
         }
+    }
+    coord_t GetCoordByVal(uint8_t BlockID, char Val)
+    {
+        coord_t Result;
+        
+        for( int y = 0; y < this->Size; y++ )
+        {
+            for(int x = 0; x < this->Size; x++)
+            {
+                if( this->CellsMatrix[y][x].BlockNo == BlockID)
+                {
+                    if( this->CellsMatrix[y][x].val == Val )
+                    {
+                        Result.x = x;
+                        Result.y = y;
+                        return Result;
+                    }
+                }
+            }
+        }
+        throw Exception("GetCoordByVal", "Value not present in selected group!");
+    }
+    void ClearPossibleSolutions(uint8_t X, uint8_t Y)
+    {
+        for( uint8_t idx = 0; idx < this->Size; idx++ )
+        {
+            this->CellsMatrix[Y][X].PossibleSolutions[idx].Val = 0;
+        }
+    }
+    uint8_t GetSmallPairs(uint8_t GroupId, small_pair_t *Pairs)
+    {
+        uint8_t PairsFound = 0;
+        
+        /* Fetch all elements from current block */
+        coord_t BlockCells[SUDOKU_MAX_SIZE];
+        (void)this->GetBlockElements(GroupId, BlockCells);
+        
+        /* Fill elements with all possibilities */
+        for ( int cellBlockIdx = 0; cellBlockIdx < this->Size; cellBlockIdx++)
+        {
+            ClearPossibleSolutions(BlockCells[cellBlockIdx].x, BlockCells[cellBlockIdx].y);
+            this->GetAllPossibleSolutions(BlockCells[cellBlockIdx].x, BlockCells[cellBlockIdx].y, this->CellsMatrix[BlockCells[cellBlockIdx].y][BlockCells[cellBlockIdx].x].PossibleSolutions );
+        }
+        
+        /* Look for pairs of two at least on the same line/column */
+        for( uint8_t blockCellIdx = 0; blockCellIdx < this->Size; blockCellIdx++ )
+        {
+            uint8_t x1 = BlockCells[blockCellIdx].x;
+            uint8_t y1 = BlockCells[blockCellIdx].y;
+            /* Block cell already solved? */
+            if( this->CellsMatrix[y1][x1].val != UNSOLVED_SYMBOL )
+                continue;
+            
+            for( uint8_t blockCellIdx2 = blockCellIdx; blockCellIdx2 < this->Size; blockCellIdx2++ )
+            {
+                if( blockCellIdx == blockCellIdx2 ) // don't compare element with itself
+                    continue;
+                
+                /* Coordinates of the current block */
+                uint8_t x2 = BlockCells[blockCellIdx2].x;
+                uint8_t y2 = BlockCells[blockCellIdx2].y;
+                
+                if( this->CellsMatrix[y2][x2].val != UNSOLVED_SYMBOL ) // also ignore already solved solutions
+                    continue;
+    
+                /** Compare each possibility with each possibilities */
+                {
+                    /* Check how many time can this a possibility appear */
+                    
+                    for( int i = 0; i < this->Size; i++ )
+                    {
+                        if( this->CellsMatrix[y1][x1].PossibleSolutions[i].Val == 0 ) break;
+                        
+                        for( int j = 0; j < this->Size; j++ )
+                        {
+                            if( this->CellsMatrix[y2][x2].PossibleSolutions[j].Val == 0 ) break;
+                            
+                            char possibleSolution1 = this->CellsMatrix[y1][x1].PossibleSolutions[i].Val;
+                            char possibleSolution2 = this->CellsMatrix[y2][x2].PossibleSolutions[j].Val;
+    
+                            if( (possibleSolution1 == possibleSolution2)  && ( (x1 == x2) || (y1==y2) ) )
+                            {
+                                small_pair_t potentialSmallPair;
+                                potentialSmallPair.Val = possibleSolution1;
+                                potentialSmallPair.element1.x = x1;
+                                potentialSmallPair.element1.y = y1;
+                                potentialSmallPair.element2.x = x2;
+                                potentialSmallPair.element2.y = y2;
+                                
+                                bool ThirdElementOnDifferentLinColFound = false;
+                                
+                                /** If there ISN'T a third one on a different line/column then the solution is accepted. Otherwise solution is dropped */
+                                for( int cellIdx = 0; cellIdx < this->Size; cellIdx++ )
+                                {
+                                    uint8_t x = BlockCells[cellIdx].x;
+                                    uint8_t y = BlockCells[cellIdx].y;
+                                    /* Block cell already solved? */
+                                    if( this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL )
+                                        continue;
+                                    
+                                    /* Ignore the cell if is the same as the other two already found */
+                                    if( ((x == x1) && (y == y1)) || ((x==x2) && (y == y2)) )
+                                        continue;
+                                    
+                                    for( int ps = 0; ps < this->Size; ps++ )
+                                    {
+                                        /* A third element with the same solution was found */
+                                        if(this->CellsMatrix[y][x].PossibleSolutions[ps].Val == possibleSolution1)
+                                        {
+                                            /* Check whether it is in the same row */
+                                            if(x1==x2)
+                                            {
+                                                if( x != x1 )
+                                                {
+                                                    ThirdElementOnDifferentLinColFound = true;
+                                                    break;
+                                                }
+                                            }
+                                            else if(y1 == y2)
+                                            {
+                                                if( y != y1 )
+                                                {
+                                                    ThirdElementOnDifferentLinColFound = true;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }/*each cell checking for third solution */
+                                
+                                if( !ThirdElementOnDifferentLinColFound )
+                                    Pairs[PairsFound++] = potentialSmallPair;
+                            }
+                        }
+                    }
+                    
+                    
+                }
+                /** **/
+            }
+        }
+        
+        
+        
+//        /* Compare all elements trying to find one which have the same x or the same y */
+//        for( int cellIdx = 0; cellIdx < this->Size; cellIdx++ )
+//        {
+//            for( int cellIdx2 = 0; cellIdx2 < this->Size; cellIdx2++ )
+//            {
+//                if( this->CellsMatrix[] )
+//            }
+//        }
+        
+        return PairsFound;
     }
 };
 
