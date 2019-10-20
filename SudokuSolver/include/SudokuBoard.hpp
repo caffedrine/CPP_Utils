@@ -190,8 +190,8 @@ public:
 //            Algo_SafeMoves();
 //            if(this->IsSolved()) break;
             
-//            Algo_CheckIntersections();
-//            if(this->IsSolved()) break;
+            Algo_CheckIntersections();
+            if(this->IsSolved()) break;
     
 //            Algo_ColumnsAndRowsPossibilities();
 //            if(this->IsSolved()) break;
@@ -260,58 +260,24 @@ private:
             char CurrentTryChar = this->Charset[ChrIdx];
     
             /* Make all cells as valid and itterate thru' them and mark those which are invalid */
-            this->SetAvailableOnAllCells(1);
-        
-            /* Invalidate all lines and columns if already contain our symbol */
+            this->SetAvailableOnAllCells(0);
+
+            /* Get all cells that can have CurrentTryChar as solution */
             for( int y = 0; y < this->Size; y++ )
             {
                 for( int x = 0; x < this->Size; x++ )
                 {
-                    if(y == x)
+                    if( IsInPossibleSolutionsList(x, y, CurrentTryChar) )
                     {
-                        if( AlreadyOnX(y, CurrentTryChar) )
-                        {
-                            /* Mark all elements on that column as unavailable */
-                            for( int xIdx = 0; xIdx < this->Size; xIdx++ )
-                            {
-                                this->CellsMatrix[y][xIdx].IsAvailable = 0;
-                            }
-                        }
-                        if( AlreadyOnY(x, CurrentTryChar) )
-                        {
-                            /* Mark all elements on that line as unavailable */
-                            for( int yIdx = 0; yIdx < this->Size; yIdx++ )
-                            {
-                                this->CellsMatrix[yIdx][x].IsAvailable = 0;
-                            }
-                        }
-                    }/*x==y*/
-                }/* for x */
-            }/* for y */
+                        this->CellsMatrix[y][x].IsAvailable = 1;
+                    }
+                }
+            }
 
-            
-//            /* Invalidate all elements from a cell if current char is already contained */
-//            for(int blockIdx = 0; blockIdx < this->Size; blockIdx++)
-//            {
-//                if(AlreadyOnBlock(blockIdx, CurrentTryChar))
-//                {
-//                    for( int y = 0; y < this->Size; y++ )
-//                    {
-//                        for( int x = 0; x < this->Size; x++ )
-//                        {
-//                            if( this->CellsMatrix[y][x].BlockNo == blockIdx )
-//                            {
-//                                this->CellsMatrix[y][x].IsAvailable = 0;
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-        
             /* Now loop through all block and check whether there is only one element available - that would be an solution */
             for(int blockIdx = 0; blockIdx < this->Size; blockIdx++)
             {
-                /* After all intersections there is only one cell remaining. If Currentchar is not conteinted by the block, then we have a solution */
+                /* After all intersections there is only one cell remaining. If Current char is not contained by the block, then we have a solution */
                 if( GetAvailableCellsOnBlock(blockIdx) == 1  && !AlreadyOnBlock(blockIdx, CurrentTryChar) )
                 {
                     for( int y = 0; y < this->Size; y++ )
@@ -325,6 +291,7 @@ private:
                                     this->CellsMatrix[x][y].val = CurrentTryChar;
                                     this->CellsMatrix[x][y].IsAvailable = 0;
                                     this->IncCellsSolved();
+                                    int dummy = 0;
                                 }
                             }
                         }
@@ -335,7 +302,7 @@ private:
             
             
 //            /* Print debugging matrix */
-//            printf("\n Current character: '%c' - available pozitions\n", CurrentTryChar);
+//            printf("Current character: '%c' - available pozitions\n", CurrentTryChar);
 //            for(int y = 0; y < this->Size; y++)
 //            {
 //                for( int x = 0; x < this->Size; x++)
@@ -574,16 +541,21 @@ private:
             }
         }
         
+        bool PrintLogs = false;
+        
         int PairsDetectionIterations = 5;
         while( PairsDetectionIterations > 0 ) // Just to be sure that all blocks gets updated
         {
-            printf("Pairs detected on iteration: %d:\n", 5 - PairsDetectionIterations);
+            if(PrintLogs)
+                printf("Pairs detected on iteration: %d:\n", 5 - PairsDetectionIterations);
+            
             for( int BlockId = 0; BlockId < this->Size; BlockId++ ) /* Loop through all blocks */
             {
                 /* Matrix containing pairs of cells that are on the same line/row */
                 small_pair_t SmallPairsFound[SUDOKU_MAX_SIZE] = {{0, 0}, {0, 0}, 0};
                 this->GetSmallPairs(BlockId, SmallPairsFound);
                 
+                if(PrintLogs)
                 for( int pairIdx = 0; pairIdx < this->Size; pairIdx++ )
                 {
                     if( SmallPairsFound[pairIdx].Val == 0) break;
@@ -616,35 +588,38 @@ private:
                     }
                 }
             }/* for each block */
-            printf("\n");
+            if(PrintLogs) printf("\n");
             
             PairsDetectionIterations--;
         }
         
         /* Validate changes on possibilities table for each cell */
         PossibilityTableUpdated = true;
-        
-        /* Display symbols for debugging*/
-        printf("Matrix cells possiblities:\n");
-        for( int y = 0; y < this->Size; y++ )
+    
+        if(PrintLogs)
         {
-            for( int x = 0; x < this->Size; x++ )
+            /* Display symbols for debugging*/
+            printf("Matrix cells possiblities:\n");
+            for( int y = 0; y < this->Size; y++ )
             {
-                if(this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL) continue;
-                
-                printf("[%d][%d] = ", y, x);
-                for( int psIdx = 0; psIdx < this->Size; psIdx++ )
+                for( int x = 0; x < this->Size; x++ )
                 {
-                    if( this->CellsMatrix[y][x].PossibleSolutions[psIdx].Val == 0 )
-                        break;
-                    
-                    printf("%c ", this->CellsMatrix[y][x].PossibleSolutions[psIdx].Val);
+                    if( this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL ) continue;
+            
+                    printf("[%d][%d] = ", y, x);
+                    for( int psIdx = 0; psIdx < this->Size; psIdx++ )
+                    {
+                        if( this->CellsMatrix[y][x].PossibleSolutions[psIdx].Val == 0 )
+                            break;
+                
+                        printf("%c ", this->CellsMatrix[y][x].PossibleSolutions[psIdx].Val);
+                    }
+                    printf("\n");
                 }
                 printf("\n");
             }
             printf("\n");
         }
-        printf("\n");
     
         
         int dummy = 0;
@@ -718,59 +693,13 @@ private:
     bool IsInPossibleSolutionNoCrossCheck(uint8_t x, uint8_t y, char SolutionToCheck)
     {
         bool Result = false;
-        if( !PossibilityTableUpdated )
+        /* Check whether it's safe to place this symbol on this vox */
+        if( !this->AlreadyOnX(y, SolutionToCheck) &&
+            !this->AlreadyOnY(x, SolutionToCheck) &&
+            !this->AlreadyOnBlock(this->CellsMatrix[y][x].BlockNo, SolutionToCheck) &&
+            this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL )
         {
-            /* Check whether it's safe to place this symbol on this vox */
-            if( !this->AlreadyOnX(y, SolutionToCheck) &&
-                !this->AlreadyOnY(x, SolutionToCheck) &&
-                !this->AlreadyOnBlock(this->CellsMatrix[y][x].BlockNo, SolutionToCheck) &&
-                this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL )
-            {
-                Result = true;
-            }
-        }
-        return Result;
-    }
-    uint8_t GetAllPossibleSolutionsNoCrossCheck(uint8_t x, uint8_t y, possibility_t *PossibleSolutionsBuffer = nullptr)
-    {
-        uint8_t PossibleSollutions = 0;
-        if( this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL )
-        {
-            for( int TryCharIdx = 0; TryCharIdx < this->Size; TryCharIdx++ )
-            {
-                /* Variable to store current char to be stored */
-                char CurrentTryChar = Charset[TryCharIdx];
-                /* Check whether it's safe to place this symbol on this vox */
-                if( this->IsInPossibleSolutionNoCrossCheck(x, y, CurrentTryChar) )
-                {
-                    if( PossibleSolutionsBuffer != nullptr )
-                    {
-                        possibility_t possibility;
-                        possibility.Val = CurrentTryChar;
-                        possibility.Coord.y = y;
-                        possibility.Coord.x = x;
-                        PossibleSolutionsBuffer[ PossibleSollutions ++ ] = possibility;
-                    }
-                    else
-                    {
-                        PossibleSollutions++;
-                    }
-                }
-                
-            }
-        }
-        return PossibleSollutions;
-    }
-    
-    bool IsInPossibleSolutionsList(uint8_t x, uint8_t y, char SolutionToCheck)
-    {
-        bool Result = false;
-        for( int solIdx = 0; solIdx < this->Size; solIdx++ )
-        {
-            if( this->CellsMatrix[y][x].PossibleSolutions[solIdx].Val == SolutionToCheck )
-            {
-                Result = true;
-            }
+            Result = true;
         }
         return Result;
     }
@@ -811,6 +740,58 @@ private:
             }
         }
         return false;
+    }
+    uint8_t GetAllPossibleSolutionsNoCrossCheck(uint8_t x, uint8_t y, possibility_t *PossibleSolutionsBuffer = nullptr)
+    {
+        uint8_t PossibleSollutions = 0;
+        if( this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL )
+        {
+            for( int TryCharIdx = 0; TryCharIdx < this->Size; TryCharIdx++ )
+            {
+                /* Variable to store current char to be stored */
+                char CurrentTryChar = Charset[TryCharIdx];
+                /* Check whether it's safe to place this symbol on this vox */
+                if( this->IsInPossibleSolutionNoCrossCheck(x, y, CurrentTryChar) )
+                {
+                    if( PossibleSolutionsBuffer != nullptr )
+                    {
+                        possibility_t possibility;
+                        possibility.Val = CurrentTryChar;
+                        possibility.Coord.y = y;
+                        possibility.Coord.x = x;
+                        PossibleSolutionsBuffer[ PossibleSollutions ++ ] = possibility;
+                    }
+                    else
+                    {
+                        PossibleSollutions++;
+                    }
+                }
+                
+            }
+        }
+        return PossibleSollutions;
+    }
+    bool IsInPossibleSolutionsList(uint8_t x, uint8_t y, char SolutionToCheck)
+    {
+        bool Result = false;
+        if( this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL )
+        {
+            for( int solIdx = 0; solIdx < this->Size; solIdx++ )
+            {
+                if( this->CellsMatrix[y][x].PossibleSolutions[solIdx].Val == 0 )
+                {
+                    Result = false;
+                    break;
+                }
+        
+                if( this->CellsMatrix[y][x].PossibleSolutions[solIdx].Val == SolutionToCheck )
+                {
+                    Result = true;
+                    break;
+                }
+            }
+        }
+        return Result;
     }
     uint8_t GetAllPossibleSolutions(uint8_t x, uint8_t y, possibility_t *PossibleSolutionsBuffer = nullptr)
     {
