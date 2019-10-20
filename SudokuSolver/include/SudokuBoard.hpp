@@ -496,6 +496,9 @@ private:
     {
         /**
          * https://www.youtube.com/watch?v=AwBdgHqUmMQ - 5:15
+         *
+         * https://www.conceptispuzzles.com/index.aspx?uri=puzzle/sudoku/techniques
+         *
          */
     }
     
