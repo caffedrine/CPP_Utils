@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstdint>
 #include <cstdlib>
+#include <iostream>
 
 #include <AnsiColors.h>
 #include <TimeUtils.h>
@@ -60,6 +61,14 @@ class SudokuBoard
         coord_t element2;
         char Val;
     }small_pair_t;
+    
+    typedef struct
+    {
+        coord_t element1;
+        coord_t element2;
+        char Val1;
+        char Val2;
+    }naked_pair_t;
     
     typedef struct
     {
@@ -122,9 +131,12 @@ public:
             }
             printf("\33[2K\r"); // Erase current line
         }
+        /* Send to the output */
+        fflush(stdout);
         
+        std::string elapsedTimeStr = this->TimeCounter.ElapsedTimeString();
         /* Print time again */
-        printf("Time elapsed: %s\n", this->TimeCounter.ElapsedTimeString().c_str());
+        std::cout <<  elapsedTimeStr << std::endl;
 
         /* Send to the output */
         fflush(stdout);
@@ -196,16 +208,17 @@ public:
             Algo_ColumnsAndRowsPossibilities();
             if(this->IsSolved()) break;
     
+            Algo_NakedPairs();
+            if(this->IsSolved()) break;
+            
+            Algo_LoneSingles();
+            if(this->IsSolved()) break;
+            
             Algo_NextStrategy();
             if(this->IsSolved()) break;
-    
             
             /* Update time elapsed */
-            if( displayTimeTimer.ElapsedMs() >= 28 )
-            {
-                displayTimeTimer.Restart();
-                this->PrintTimeElapsed();
-            }
+            this->PrintTimeElapsed();
             
             /* Algorithms are blocked...find something better :) */
             if( this->CellsSolved == StartProgress )
@@ -214,9 +227,9 @@ public:
             }
             
         }/*while*/
-        
-        this->PrintTimeElapsed();
+    
         PrintBoard();
+        this->PrintTimeElapsed();
         if(!this->IsSolved())
         {
             printf("Cells solved: %d. Can't solve from this point...\n\n", this->CellsSolved);
@@ -492,12 +505,134 @@ private:
     
     }/*void Algo_UpdateCellPossibilities()*/
     
+    void Algo_LoneSingles()
+    {
+        /*
+         * https://www.learn-sudoku.com/lone-singles.html
+         *
+         * If there is a cell in a block with only one possibility then that is the solution.
+         */
+        for( int blockId = 0; blockId < this->Size; blockId++ )
+        {
+            coord_t BlockElements[SUDOKU_MAX_SIZE];
+            for( int elementIdx = 0; elementIdx < this->GetBlockElements(blockId, BlockElements); elementIdx++ )
+            {
+                coord_t CurrentCell = BlockElements[elementIdx];
+                if( GetAllPossibleSolutions(CurrentCell.x, CurrentCell.y) == 1 )
+                {
+                    this->CellsMatrix[CurrentCell.y][CurrentCell.x].val = this->CellsMatrix[CurrentCell.y][CurrentCell.x].PossibleSolutions[0].Val;
+                }
+            }
+        }
+    }
+    
+    void Algo_NakedPairs()
+    {
+        /**
+         * https://www.learn-sudoku.com/naked-pairs.html
+         */
+        for( int BlockIdx = 0; BlockIdx < this->Size; BlockIdx++ )
+        {
+            uint8_t ElementsWithTwoSmallSolutionsNo = 0;
+            coord_t ElementsWithTwoSmallSolutions[SUDOKU_MAX_SIZE];
+            
+            /* Fetch all elements that have maximum two solutions possible */
+            coord_t BlockElements[SUDOKU_MAX_SIZE];
+            for( int BlockElementIdx = 0; BlockElementIdx < this->GetBlockElements(BlockIdx, BlockElements); BlockElementIdx++ )
+            {
+                cell_extended_t &CurrentCell = this->CellsMatrix[BlockElements[BlockElementIdx].y][BlockElements[BlockElementIdx].x];
+                /* Keep only cells with two solutions and which are not solved */
+                if( GetAllPossibleSolutions(CurrentCell.Coord.x, CurrentCell.Coord.y) != 2  || CurrentCell.val != UNSOLVED_SYMBOL)
+                    continue;
+    
+                ElementsWithTwoSmallSolutions[ElementsWithTwoSmallSolutionsNo++] = CurrentCell.Coord;
+            }
+            
+            
+            /* Store naked pairs found */
+            uint8_t NakedPairsNo = 0;
+            naked_pair_t NakedPairs[SUDOKU_MAX_SIZE/2 + 1];
+            
+            /* Check whether there are naked pairs */
+            for( int elementIdx = 0; elementIdx < ElementsWithTwoSmallSolutionsNo; elementIdx++ )
+            {
+                for( int elementIdx2 = elementIdx; elementIdx2 < ElementsWithTwoSmallSolutionsNo; elementIdx2++ )
+                {
+                    coord_t element1, element2;
+                    element1 = ElementsWithTwoSmallSolutions[elementIdx];
+                    element2 = ElementsWithTwoSmallSolutions[elementIdx2];
+                    
+                    if( this->CellsMatrix[element1.y][element1.x].PossibleSolutions[0].Val ==  this->CellsMatrix[element2.y][element2.x].PossibleSolutions[0].Val
+                    && this->CellsMatrix[element1.y][element1.x].PossibleSolutions[1].Val ==  this->CellsMatrix[element2.y][element2.x].PossibleSolutions[1].Val)
+                    {
+                        naked_pair_t Pair;
+                        Pair.element1 = element1;
+                        Pair.element2 = element2;
+                        Pair.Val1 = this->CellsMatrix[element1.y][element1.x].PossibleSolutions[0].Val;
+                        Pair.Val2 = this->CellsMatrix[element1.y][element1.x].PossibleSolutions[1].Val;
+                        
+                        NakedPairs[NakedPairsNo++] = Pair;
+                    }
+                }
+            }
+            
+            /* In case there were naked pairs, remove update possibilities table */
+            for( int NakedPairIdx = 0; NakedPairIdx < NakedPairsNo; NakedPairIdx++)
+            {
+                naked_pair_t CurrentPair = NakedPairs[NakedPairIdx];
+                
+                for( int BlockElementIdx = 0; BlockElementIdx < this->GetBlockElements(BlockIdx, BlockElements); BlockElementIdx++ )
+                {
+                    cell_extended_t &CurrentCell = this->CellsMatrix[BlockElements[BlockElementIdx].y][BlockElements[BlockElementIdx].x];
+                    /* Keep only cells with two solutions and which are not solved and are different compared to pair cells*/
+                    if( (CurrentCell.val != UNSOLVED_SYMBOL) &&
+                    (CurrentCell.Coord.x != CurrentPair.element1.x) && (CurrentCell.Coord.y != CurrentPair.element1.y) &&
+                    (CurrentCell.Coord.x != CurrentPair.element2.x) && (CurrentCell.Coord.y != CurrentPair.element2.y)     )
+                        continue;
+                    
+                    this->RemovePossibility( CurrentCell.Coord.x, CurrentCell.Coord.y,  CurrentPair.Val1);
+                    this->RemovePossibility( CurrentCell.Coord.x, CurrentCell.Coord.y,  CurrentPair.Val2);
+                }
+            }
+            
+        }
+    }
+    
     void Algo_NextStrategy()
     {
         /**
          * https://www.youtube.com/watch?v=AwBdgHqUmMQ - 5:15
          *
          * https://www.conceptispuzzles.com/index.aspx?uri=puzzle/sudoku/techniques
+         *
+         * Refference: https://www.learn-sudoku.com/hidden-singles.html
+         *
+         * Techniques: https://www.sudoklue.com/m4/
+         *  1. Naked single
+         *  2. Hidden Single
+         *  3. Naked Pair
+         *  4. Omission
+         *  5. Naked triplet
+         *  6. Hidden pair
+         *  7. Naked Quad
+         *  8. Hidden triplet
+         *  9. Hidden quad
+         *  10. BUG Type 1
+         *  11. X - wing
+         *  12. Swordfish
+         *  13. Uniq Rectangle 1
+         *  14. XY-Wing
+         *  15. XYZ Wing
+         *  16. BUG Type 2
+         *  17. Forcing Chain1
+         *  18. Forcing Chain2
+         *  19. Forcing Chain3
+         *
+         */
+         
+        /**
+         *
+         * Implemented here: Check every block. Is there is any symbol repeating only once then that must be a solution.
          *
          */
     }
@@ -748,7 +883,7 @@ private:
         }
         throw Exception("CharFromCharsetToIndex", "Char not present into array");
     }
-    void GetBlockElements(uint8_t in_GroupId, coord_t *out_Elements)
+    uint8_t GetBlockElements(uint8_t in_GroupId, coord_t *out_Elements)
     {
         uint8_t ElementsIndex = 0;
         coord_t tmpCoord;
@@ -765,6 +900,7 @@ private:
                 }
             }
         }
+        return ElementsIndex;
     }
     /* Advanced solving */
     uint8_t GetAvailableCellsOnBlock(uint8_t BlockId)
