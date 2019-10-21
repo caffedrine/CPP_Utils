@@ -72,6 +72,16 @@ class SudokuBoard
     
     typedef struct
     {
+        coord_t element1;
+        coord_t element2;
+        coord_t element3;
+        char Val1;
+        char Val2;
+        char Val3;
+    }naked_triplets_t;
+    
+    typedef struct
+    {
         char Val;
         coord_t Coord;
     }possibility_t;
@@ -208,10 +218,7 @@ public:
             Algo_ColumnsAndRowsPossibilities();
             if(this->IsSolved()) break;
     
-            Algo_NakedPairs();
-            if(this->IsSolved()) break;
-            
-            Algo_LoneSingles();
+            Algo_NakedSingles();
             if(this->IsSolved()) break;
             
             Algo_NextStrategy();
@@ -500,12 +507,16 @@ private:
             printf("\n");
         }
     
+        /* Apply some other algorithms to remove some more variants */
+//        Algo_NakedTriplets();
+//        Algo_NakedPairs();
+        Algo_Omission();
         
         int dummy = 0;
     
     }/*void Algo_UpdateCellPossibilities()*/
     
-    void Algo_LoneSingles()
+    void Algo_NakedSingles()
     {
         /*
          * https://www.learn-sudoku.com/lone-singles.html
@@ -521,6 +532,7 @@ private:
                 if( GetAllPossibleSolutions(CurrentCell.x, CurrentCell.y) == 1 )
                 {
                     this->CellsMatrix[CurrentCell.y][CurrentCell.x].val = this->CellsMatrix[CurrentCell.y][CurrentCell.x].PossibleSolutions[0].Val;
+                    this->IncCellsSolved();
                 }
             }
         }
@@ -551,18 +563,18 @@ private:
             
             /* Store naked pairs found */
             uint8_t NakedPairsNo = 0;
-            naked_pair_t NakedPairs[SUDOKU_MAX_SIZE/2 + 1];
+            naked_pair_t NakedPairs[SUDOKU_MAX_SIZE/2 + 1] = {0};
             
             /* Check whether there are naked pairs */
             for( int elementIdx = 0; elementIdx < ElementsWithTwoSmallSolutionsNo; elementIdx++ )
             {
-                for( int elementIdx2 = elementIdx; elementIdx2 < ElementsWithTwoSmallSolutionsNo; elementIdx2++ )
+                for( int elementIdx2 = elementIdx + 1; elementIdx2 < ElementsWithTwoSmallSolutionsNo; elementIdx2++ )
                 {
                     coord_t element1, element2;
                     element1 = ElementsWithTwoSmallSolutions[elementIdx];
                     element2 = ElementsWithTwoSmallSolutions[elementIdx2];
                     
-                    if( this->CellsMatrix[element1.y][element1.x].PossibleSolutions[0].Val ==  this->CellsMatrix[element2.y][element2.x].PossibleSolutions[0].Val
+                    if( this->CellsMatrix[element1.y][element1.x].PossibleSolutions[0].Val == this->CellsMatrix[element2.y][element2.x].PossibleSolutions[0].Val
                     && this->CellsMatrix[element1.y][element1.x].PossibleSolutions[1].Val ==  this->CellsMatrix[element2.y][element2.x].PossibleSolutions[1].Val)
                     {
                         naked_pair_t Pair;
@@ -584,18 +596,102 @@ private:
                 for( int BlockElementIdx = 0; BlockElementIdx < this->GetBlockElements(BlockIdx, BlockElements); BlockElementIdx++ )
                 {
                     cell_extended_t &CurrentCell = this->CellsMatrix[BlockElements[BlockElementIdx].y][BlockElements[BlockElementIdx].x];
-                    /* Keep only cells with two solutions and which are not solved and are different compared to pair cells*/
-                    if( (CurrentCell.val != UNSOLVED_SYMBOL) &&
-                    (CurrentCell.Coord.x != CurrentPair.element1.x) && (CurrentCell.Coord.y != CurrentPair.element1.y) &&
-                    (CurrentCell.Coord.x != CurrentPair.element2.x) && (CurrentCell.Coord.y != CurrentPair.element2.y)     )
-                        continue;
+                    /* Ignore cells alread solved */
+                    if( (CurrentCell.val != UNSOLVED_SYMBOL)) continue;
+                    
+                    /* Keep only cells with two solutions and are different compared to pair cells already found naked*/
+                    if ( ((CurrentCell.Coord.x == CurrentPair.element1.x) && (CurrentCell.Coord.y == CurrentPair.element1.y)) ||
+                            ((CurrentCell.Coord.x == CurrentPair.element2.x) && (CurrentCell.Coord.y == CurrentPair.element2.y)) ) continue;
                     
                     this->RemovePossibility( CurrentCell.Coord.x, CurrentCell.Coord.y,  CurrentPair.Val1);
                     this->RemovePossibility( CurrentCell.Coord.x, CurrentCell.Coord.y,  CurrentPair.Val2);
                 }
             }
-            
         }
+    }
+    
+    void Algo_NakedTriplets()
+    {
+        /**
+         * https://www.learn-sudoku.com/naked-pairs.html
+         */
+        for( int BlockIdx = 0; BlockIdx < this->Size; BlockIdx++ )
+        {
+            uint8_t ElementsWithThreeSmallSolutionsNo = 0;
+            coord_t ElementsWithThreeSmallSolutions[SUDOKU_MAX_SIZE];
+            
+            /* Fetch all elements that have maximum two solutions possible */
+            coord_t BlockElements[SUDOKU_MAX_SIZE];
+            for( int BlockElementIdx = 0; BlockElementIdx < this->GetBlockElements(BlockIdx, BlockElements); BlockElementIdx++ )
+            {
+                cell_extended_t &CurrentCell = this->CellsMatrix[BlockElements[BlockElementIdx].y][BlockElements[BlockElementIdx].x];
+                /* Keep only cells with two solutions and which are not solved */
+                if( GetAllPossibleSolutions(CurrentCell.Coord.x, CurrentCell.Coord.y) != 3 || CurrentCell.val != UNSOLVED_SYMBOL)
+                    continue;
+    
+                ElementsWithThreeSmallSolutions[ElementsWithThreeSmallSolutionsNo++] = CurrentCell.Coord;
+            }
+            
+            return ;
+            
+            /* Store naked pairs found */
+            uint8_t NakedTripletsNo = 0;
+            naked_triplets_t NakedTriplets[SUDOKU_MAX_SIZE / 2 + 1] = {0};
+            
+            /* Check whether there are naked pairs */
+            for( int elementIdx = 0; elementIdx < ElementsWithThreeSmallSolutionsNo; elementIdx++ )
+            {
+                for( int elementIdx2 = elementIdx + 1; elementIdx2 < ElementsWithThreeSmallSolutionsNo; elementIdx2++ )
+                {
+                    coord_t element1, element2;
+                    element1 = ElementsWithThreeSmallSolutions[elementIdx];
+                    element2 = ElementsWithThreeSmallSolutions[elementIdx2];
+                    
+                    if( this->CellsMatrix[element1.y][element1.x].PossibleSolutions[0].Val == this->CellsMatrix[element2.y][element2.x].PossibleSolutions[0].Val
+                        && this->CellsMatrix[element1.y][element1.x].PossibleSolutions[1].Val ==  this->CellsMatrix[element2.y][element2.x].PossibleSolutions[1].Val)
+                    {
+                        naked_triplets_t Pair;
+                        Pair.element1 = element1;
+                        Pair.element2 = element2;
+                        Pair.Val1 = this->CellsMatrix[element1.y][element1.x].PossibleSolutions[0].Val;
+                        Pair.Val2 = this->CellsMatrix[element1.y][element1.x].PossibleSolutions[1].Val;
+    
+                        NakedTriplets[NakedTripletsNo++] = Pair;
+                    }
+                }
+            }
+            
+            /* In case there were naked triplets, remove update possibilities table */
+            for( int NakedPairIdx = 0; NakedPairIdx < NakedTripletsNo; NakedPairIdx++)
+            {
+                naked_triplets_t CurrentPair = NakedTriplets[NakedPairIdx];
+                
+                for( int BlockElementIdx = 0; BlockElementIdx < this->GetBlockElements(BlockIdx, BlockElements); BlockElementIdx++ )
+                {
+                    cell_extended_t &CurrentCell = this->CellsMatrix[BlockElements[BlockElementIdx].y][BlockElements[BlockElementIdx].x];
+                    /* Ignore cells alread solved */
+                    if( (CurrentCell.val != UNSOLVED_SYMBOL)) continue;
+                    
+                    /* Keep only cells with two solutions and are different compared to pair cells already found naked*/
+                    if ( ((CurrentCell.Coord.x == CurrentPair.element1.x) && (CurrentCell.Coord.y == CurrentPair.element1.y)) ||
+                         ((CurrentCell.Coord.x == CurrentPair.element2.x) && (CurrentCell.Coord.y == CurrentPair.element2.y)) ) continue;
+                    
+                    this->RemovePossibility( CurrentCell.Coord.x, CurrentCell.Coord.y,  CurrentPair.Val1);
+                    this->RemovePossibility( CurrentCell.Coord.x, CurrentCell.Coord.y,  CurrentPair.Val2);
+                }
+            }
+        }
+    }
+    
+    void Algo_Omission()
+    {
+        /**
+         * https://www.learn-sudoku.com/omission.html
+         *
+         */
+         
+        
+        
     }
     
     void Algo_NextStrategy()
@@ -603,7 +699,7 @@ private:
         /**
          * https://www.youtube.com/watch?v=AwBdgHqUmMQ - 5:15
          *
-         * https://www.conceptispuzzles.com/index.aspx?uri=puzzle/sudoku/techniques
+         * https://www.conceptispuzzles.com/index.aspx?uri=puzzle/sudoku/techniquesif w
          *
          * Refference: https://www.learn-sudoku.com/hidden-singles.html
          *
@@ -648,12 +744,11 @@ private:
             {
                 possibility_t possibileSolutions[SUDOKU_MAX_SIZE];
                 uint8_t SolutionsNumber = this->GetAllPossibleSolutions(x, y, possibileSolutions);
-                if( SolutionsNumber > 0 && SolutionsNumber <= 3 )
+                if( SolutionsNumber > 0 )// && SolutionsNumber <= 3 )
                 {
                     printf("[%d][%d] could have only %d solutions: ", y, x, SolutionsNumber);
                     for( int i = 0; i < SolutionsNumber; i++ )
                     {
-        
                         {
                             printf("%c ", possibileSolutions[i].Val);
                         }

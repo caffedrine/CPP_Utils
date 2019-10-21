@@ -39,8 +39,9 @@ link_directories(${Proj_INCLUDE_DIRS})
 add_executable (${PROJECT_NAME} ${Proj_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${Proj_INCLUDE_DIRS})
 
-
-target_link_libraries(${PROJECT_NAME} libstdc++)
+if (WIN32 OR MSVC)
+    target_link_libraries(${PROJECT_NAME} libstdc++)
+endif (WIN32 OR MSVC)
 
 #target_link_libraries(${PROJECT_NAME} pthread)
 #target_link_libraries(${PROJECT_NAME} myhtml)
