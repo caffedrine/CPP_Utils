@@ -711,6 +711,7 @@ private:
                 
                 for( int x = 0; x < this->Size; x++ )
                 {
+                   
                     if( IsInPossibleSolutionsList(x, y, CurrentChar) )
                     {
                         if( Appearances == 0 )
@@ -754,37 +755,69 @@ private:
                             }
                         }
                     }/* is last column?*/
-                    
                 }/*x*/
             }/*y*/
         }/*chrIdx */
         
         /** Get each cell from each column */
-//        for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
-//        {
-//            char CurrentChar = this->Charset[chrIdx];
-//            for( int x = 0; x < this->Size; x++ )
-//            {
-//                uint8_t Appearances = 0;
-//                for( int y = 0; y < this->Size; y++ )
-//                {
-//                    if( IsInPossibleSolutionsList(x, y, CurrentChar) )
-//                        Appearances++;
-//                }/*x*/
-//                if( Appearances == 1 ) /* 1 appearance = 1 solution */
-//                {
-//                    /* Go to the location of the single solution */
-//                    for( int y = 0; y < this->Size; y++ )
-//                    {
-//                        if( IsInPossibleSolutionsList(x, y, CurrentChar) )
-//                        {
-//                            this->CellsMatrix[y][x].val = CurrentChar;
-//                            this->IncCellsSolved();
-//                        }
-//                    }/*x*/
-//                }
-//            }/*y*/
-//        }/*chrIdx */
+        for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
+        {
+            char CurrentChar = this->Charset[chrIdx];
+            for( int x = 0; x < this->Size; x++ )
+            {
+                uint8_t Appearances = 0;
+                uint8_t InLastBlock = 0;
+                bool OmissionPossible = false;
+            
+                for( int y = 0; y < this->Size; y++ )
+                {
+                
+                    if( IsInPossibleSolutionsList(x, y, CurrentChar) )
+                    {
+                        if( Appearances == 0 )
+                        {
+                            InLastBlock = this->CellsMatrix[y][x].BlockNo;
+                            Appearances++;
+                        }
+                        else
+                        {
+                            if( this->CellsMatrix[y][x].BlockNo == InLastBlock )
+                            {
+                                OmissionPossible = true;
+                            }
+                            else
+                            {
+                                OmissionPossible = false;
+                                break;
+                            }
+                        }
+                    }
+                
+                    /* When last line is reached, verify the results */
+                    if( y == this->Size - 1 )
+                    {
+                        if( OmissionPossible == true )
+                        {
+                            /* Remove the the other elements from the current cell as solution must be on this column */
+                            coord_t BlockElements[SUDOKU_MAX_SIZE];
+                            this->GetBlockElements(InLastBlock, BlockElements);
+                            for( int elemIdx = 0; elemIdx < this->Size; elemIdx++ )
+                            {
+                                cell_extended_t &currentCell = this->CellsMatrix[BlockElements[elemIdx].y][BlockElements[elemIdx].x];
+                            
+                                if( currentCell.val != UNSOLVED_SYMBOL )
+                                    continue;
+                            
+                                if( currentCell.Coord.x != x )
+                                {
+                                    this->RemovePossibility(currentCell.Coord.x, currentCell.Coord.y, CurrentChar);
+                                }
+                            }
+                        }
+                    }/* is last line?*/
+                }/*x*/
+            }/*y*/
+        }/*chrIdx */
 
 //            printf("\tUnique solution: '%c'\n", Unique);
 //            printf("\tAparitions: \n");
