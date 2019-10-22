@@ -508,8 +508,9 @@ private:
             
             /* Apply some other algorithms to remove some more variants */
 //        Algo_NakedTriplets();
-//        Algo_NakedPairs();
+            Algo_NakedPairs();
             Algo_Omission();
+            Algo_HiddenPairs();
         }
         
         /* To make sure next time will try to update as well */
@@ -612,6 +613,14 @@ private:
                 }
             }
         }
+    }
+    
+    void Algo_HiddenPairs()
+    {
+        /**
+         * https://www.learn-sudoku.com/hidden-pairs.html
+         */
+        
     }
     
     void Algo_NakedTriplets()
