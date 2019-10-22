@@ -49,11 +49,53 @@ class SudokuBoard
                     ANSI_COLOR_BLUE_BG,
             };
     
-    typedef struct
+    typedef struct coord_t
     {
         uint8_t x;
         uint8_t y;
+    
+        bool operator==(coord_t const  &f) const
+        {
+           bool Result = false;
+           if( (x == f.x) && (y == f.y) )
+           {
+                Result = true;
+           }
+           return Result;
+        }
+    
+        bool operator!=(coord_t const  &f) const
+        {
+            bool Result = false;
+            if( (x != f.x) || (y != f.y) )
+            {
+                Result = true;
+            }
+            return Result;
+        }
     } coord_t;
+    
+    typedef struct
+    {
+        char Val;
+        coord_t Coord;
+    } possibility_t;
+    
+    /** Struct to define a basic cell used by user to input it's data */
+    typedef struct
+    {
+        char val;
+        uint8_t BlockNo;
+        uint8_t IsAvailable;
+        possibility_t PossibleSolutions[SUDOKU_MAX_SIZE];
+        coord_t Coord;
+    } cell_extended_t;
+    
+    typedef struct
+    {
+        cell_extended_t Cell1;
+        cell_extended_t Cell2;
+    }pair_t;
     
     typedef struct
     {
@@ -79,22 +121,6 @@ class SudokuBoard
         char Val2;
         char Val3;
     } naked_triplets_t;
-    
-    typedef struct
-    {
-        char Val;
-        coord_t Coord;
-    } possibility_t;
-    
-    /** Struct to define a basic cell used by user to input it's data */
-    typedef struct
-    {
-        char val;
-        uint8_t BlockNo;
-        uint8_t IsAvailable;
-        possibility_t PossibleSolutions[SUDOKU_MAX_SIZE];
-        coord_t Coord;
-    } cell_extended_t;
 
 public:
     SudokuBoard(uint8_t Size_, cell_base_t *Cells) : Size(Size_)
@@ -205,8 +231,8 @@ public:
         while( !this->IsSolved() )
         {
             uint16_t StartProgress = this->CellsSolved;
-            
-            Algo_UpdateCellPossibilities();
+    
+            Algo_UpdatePossibilitiesTable();
             if( this->IsSolved() ) break;
             
             Algo_SafeMoves();
@@ -417,8 +443,13 @@ private:
         int dummyBreakpoint = 0;
     }
     
-    void Algo_UpdateCellPossibilities()
+    void Algo_UpdatePossibilitiesTable()
     {
+        /**
+         * http://hodoku.sourceforge.net/en/tech_intersections.php#lc12
+         *
+         */
+        
         /* Only to know when was called first time */
         PossibilityTableUpdated = true;
         
@@ -432,84 +463,18 @@ private:
             }
         }
         
-        bool PrintLogs = false;
-        
         /* While there are possibilitie sbeing removed, keep updating table */
         while( PossibilityTableUpdateRequest )
         {
-            /* Set to true: will be set by algos to false is possibility table not fully updated */
+            /* As long as table update process is not finished this will be set to true by algorithms */
             PossibilityTableUpdateRequest = false;
             
-            for( int BlockId = 0; BlockId < this->Size; BlockId++ ) /* Loop through all blocks */
-            {
-                /* Matrix containing pairs of cells that are on the same line/row */
-                small_pair_t SmallPairsFound[SUDOKU_MAX_SIZE] = {{0, 0}, {0, 0}, 0};
-                this->GetSmallPairs(BlockId, SmallPairsFound);
-                
-                if( PrintLogs )
-                    for( int pairIdx = 0; pairIdx < this->Size; pairIdx++ )
-                    {
-                        if( SmallPairsFound[pairIdx].Val == 0 ) break;
-                        printf("Block: %d, '%c' = [%d][%d] and [%d][%d]\n", BlockId, SmallPairsFound[pairIdx].Val, SmallPairsFound[pairIdx].element1.y, SmallPairsFound[pairIdx].element1.x, SmallPairsFound[pairIdx].element2.y, SmallPairsFound[pairIdx].element2.x);
-                    }
-                
-                /* Propagate restrictions which come by the pairs */
-                for( int pairIdx = 0; pairIdx < this->Size; pairIdx++ )
-                {
-                    small_pair_t currPair = SmallPairsFound[pairIdx];
-                    if( currPair.Val == 0 ) break; /* Break the loop if no more pairs there */
-                    
-                    if( currPair.element1.x == currPair.element2.x ) /* Restrictions to be propagated over Y axis */
-                    {
-                        for( int y = 0; y < this->Size; y++ )
-                        {
-                            cell_extended_t &cell = this->CellsMatrix[y][currPair.element1.x];
-                            if( cell.BlockNo == BlockId ) continue;
-                            this->RemovePossibility(cell.Coord.x, cell.Coord.y, currPair.Val);
-                        }
-                    }
-                    else if( currPair.element1.y == currPair.element2.y ) /* Restrictions to be propagated over X axis */
-                    {
-                        for( int x = 0; x < this->Size; x++ )
-                        {
-                            cell_extended_t &cell = this->CellsMatrix[currPair.element1.y][x];
-                            if( cell.BlockNo == BlockId ) continue;
-                            this->RemovePossibility(cell.Coord.x, cell.Coord.y, currPair.Val);
-                        }
-                    }
-                }
-            }/* for each block */
-            if( PrintLogs ) printf("\n");
-            
-            if( PrintLogs )
-            {
-                /* Display symbols for debugging*/
-                printf("Matrix cells possiblities:\n");
-                for( int y = 0; y < this->Size; y++ )
-                {
-                    for( int x = 0; x < this->Size; x++ )
-                    {
-                        if( this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL ) continue;
-                        
-                        printf("[%d][%d] = ", y, x);
-                        for( int psIdx = 0; psIdx < this->Size; psIdx++ )
-                        {
-                            if( this->CellsMatrix[y][x].PossibleSolutions[psIdx].Val == 0 )
-                                break;
-                            
-                            printf("%c ", this->CellsMatrix[y][x].PossibleSolutions[psIdx].Val);
-                        }
-                        printf("\n");
-                    }
-                    printf("\n");
-                }
-                printf("\n");
-            }
-            
-            /* Apply some other algorithms to remove some more variants */
-//        Algo_NakedTriplets();
+            /** Confirmed */
+            Algo_LockedCandidates_Type1_Pointing();
             Algo_NakedPairs();
-            Algo_Omission();
+            
+            /** Unconfirmed */
+            Algo_LockedCandidates_Type2_Claiming();
             Algo_HiddenPairs();
         }
         
@@ -518,7 +483,222 @@ private:
         
         int dummy = 0;
         
-    }/*void Algo_UpdateCellPossibilities()*/
+    }/*void Algo_UpdatePossibilitiesTable()*/
+    
+    void Algo_LockedCandidates_Type1_Pointing()
+    {
+        bool PrintLogs = false;
+    
+        for( int BlockId = 0; BlockId < this->Size; BlockId++ ) /* Loop through all blocks */
+        {
+            /* Matrix containing pairs of cells that are on the same line/row */
+            small_pair_t SmallPairsFound[SUDOKU_MAX_SIZE] = {{0, 0}, {0, 0}, 0};
+            this->GetSmallPairs(BlockId, SmallPairsFound);
+        
+            if( PrintLogs )
+                for( int pairIdx = 0; pairIdx < this->Size; pairIdx++ )
+                {
+                    if( SmallPairsFound[pairIdx].Val == 0 ) break;
+                    printf("Block: %d, '%c' = [%d][%d] and [%d][%d]\n", BlockId, SmallPairsFound[pairIdx].Val, SmallPairsFound[pairIdx].element1.y, SmallPairsFound[pairIdx].element1.x, SmallPairsFound[pairIdx].element2.y, SmallPairsFound[pairIdx].element2.x);
+                }
+        
+            /* Propagate restrictions which come by the pairs */
+            for( int pairIdx = 0; pairIdx < this->Size; pairIdx++ )
+            {
+                small_pair_t currPair = SmallPairsFound[pairIdx];
+                if( currPair.Val == 0 ) break; /* Break the loop if no more pairs there */
+            
+                if( currPair.element1.x == currPair.element2.x ) /* Restrictions to be propagated over Y axis */
+                {
+                    for( int y = 0; y < this->Size; y++ )
+                    {
+                        cell_extended_t &cell = this->CellsMatrix[y][currPair.element1.x];
+                        if( cell.BlockNo == BlockId ) continue;
+                        this->RemovePossibility(cell.Coord.x, cell.Coord.y, currPair.Val);
+                    }
+                }
+                else if( currPair.element1.y == currPair.element2.y ) /* Restrictions to be propagated over X axis */
+                {
+                    for( int x = 0; x < this->Size; x++ )
+                    {
+                        cell_extended_t &cell = this->CellsMatrix[currPair.element1.y][x];
+                        if( cell.BlockNo == BlockId ) continue;
+                        this->RemovePossibility(cell.Coord.x, cell.Coord.y, currPair.Val);
+                    }
+                }
+            }
+        }/* for each block */
+        if( PrintLogs ) printf("\n");
+    
+        if( PrintLogs )
+        {
+            /* Display symbols for debugging*/
+            printf("Matrix cells possiblities:\n");
+            for( int y = 0; y < this->Size; y++ )
+            {
+                for( int x = 0; x < this->Size; x++ )
+                {
+                    if( this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL ) continue;
+                
+                    printf("[%d][%d] = ", y, x);
+                    for( int psIdx = 0; psIdx < this->Size; psIdx++ )
+                    {
+                        if( this->CellsMatrix[y][x].PossibleSolutions[psIdx].Val == 0 )
+                            break;
+                    
+                        printf("%c ", this->CellsMatrix[y][x].PossibleSolutions[psIdx].Val);
+                    }
+                    printf("\n");
+                }
+                printf("\n");
+            }
+            printf("\n");
+        }
+    }
+    
+    void Algo_LockedCandidates_Type2_Claiming()
+    {
+        /**
+         * https://www.learn-sudoku.com/omission.html
+         *
+         */
+        
+        /* Based on this method:
+         * https://www.youtube.com/watch?v=ld0hChtBLno&t=592s
+         * */
+        
+        /** Get each cell from each line */
+        for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
+        {
+            char CurrentChar = this->Charset[chrIdx];
+            for( int y = 0; y < this->Size; y++ )
+            {
+                uint8_t Appearances = 0;
+                uint8_t InLastBlock = 0;
+                bool OmissionPossible = false;
+                
+                for( int x = 0; x < this->Size; x++ )
+                {
+                    
+                    if( IsInPossibleSolutionsList(x, y, CurrentChar) )
+                    {
+                        if( Appearances == 0 )
+                        {
+                            InLastBlock = this->CellsMatrix[y][x].BlockNo;
+                            Appearances++;
+                        }
+                        else
+                        {
+                            if( this->CellsMatrix[y][x].BlockNo == InLastBlock )
+                            {
+                                OmissionPossible = true;
+                            }
+                            else
+                            {
+                                OmissionPossible = false;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    /* When last column is reached, verify the results */
+                    if( x == this->Size - 1 )
+                    {
+                        if( OmissionPossible == true )
+                        {
+                            /* Remove the the other elements from the current cell as solution must be on this line */
+                            coord_t BlockElements[SUDOKU_MAX_SIZE];
+                            this->GetBlockElements(InLastBlock, BlockElements);
+                            for( int elemIdx = 0; elemIdx < this->Size; elemIdx++ )
+                            {
+                                cell_extended_t &currentCell = this->CellsMatrix[BlockElements[elemIdx].y][BlockElements[elemIdx].x];
+                                
+                                if( currentCell.val != UNSOLVED_SYMBOL )
+                                    continue;
+                                
+                                if( currentCell.Coord.y != y )
+                                {
+                                    this->RemovePossibility(currentCell.Coord.x, currentCell.Coord.y, CurrentChar);
+                                }
+                            }
+                        }
+                    }/* is last column?*/
+                }/*x*/
+            }/*y*/
+        }/*chrIdx */
+        
+        /** Get each cell from each column */
+        for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
+        {
+            char CurrentChar = this->Charset[chrIdx];
+            for( int x = 0; x < this->Size; x++ )
+            {
+                uint8_t Appearances = 0;
+                uint8_t InLastBlock = 0;
+                bool OmissionPossible = false;
+                
+                for( int y = 0; y < this->Size; y++ )
+                {
+                    
+                    if( IsInPossibleSolutionsList(x, y, CurrentChar) )
+                    {
+                        if( Appearances == 0 )
+                        {
+                            InLastBlock = this->CellsMatrix[y][x].BlockNo;
+                            Appearances++;
+                        }
+                        else
+                        {
+                            if( this->CellsMatrix[y][x].BlockNo == InLastBlock )
+                            {
+                                OmissionPossible = true;
+                            }
+                            else
+                            {
+                                OmissionPossible = false;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    /* When last line is reached, verify the results */
+                    if( y == this->Size - 1 )
+                    {
+                        if( OmissionPossible == true )
+                        {
+                            /* Remove the the other elements from the current cell as solution must be on this column */
+                            coord_t BlockElements[SUDOKU_MAX_SIZE];
+                            this->GetBlockElements(InLastBlock, BlockElements);
+                            for( int elemIdx = 0; elemIdx < this->Size; elemIdx++ )
+                            {
+                                cell_extended_t &currentCell = this->CellsMatrix[BlockElements[elemIdx].y][BlockElements[elemIdx].x];
+                                
+                                if( currentCell.val != UNSOLVED_SYMBOL )
+                                    continue;
+                                
+                                if( currentCell.Coord.x != x )
+                                {
+                                    this->RemovePossibility(currentCell.Coord.x, currentCell.Coord.y, CurrentChar);
+                                }
+                            }
+                        }
+                    }/* is last line?*/
+                }/*x*/
+            }/*y*/
+        }/*chrIdx */
+
+//            printf("\tUnique solution: '%c'\n", Unique);
+//            printf("\tAparitions: \n");
+//            for(int i = 0; i < this->Size; i++)
+//            {
+//                if( Apparitions[i] > 0 )
+//                {
+//                    printf("\t\t'%c' = %d\n", this->Charset[i], Apparitions[i] );
+//                }
+//            }
+        int dummyBreakpoint = 0;
+        
+    }
     
     void Algo_NakedSingles()
     {
@@ -618,8 +798,75 @@ private:
     void Algo_HiddenPairs()
     {
         /**
-         * https://www.learn-sudoku.com/hidden-pairs.html
+         * http://hodoku.sourceforge.net/en/tech_hidden.php
          */
+        
+        /** Check each line */
+        for( int y = 0; y < this->Size; y++ )
+        {
+            int PairsFoundNo = 0;
+            pair_t PairsFound[SUDOKU_MAX_SIZE];
+            for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
+            {
+                char CurrentSymbol = this->Charset[chrIdx];
+                cell_extended_t Cell1 = {0}, Cell2 = {0};
+                int CellsFound = 0;
+                
+                for( int x = 0; x < this->Size; x++ )
+                {
+                    if( this->IsInPossibleSolutionsList(x, y, CurrentSymbol) )
+                    {
+                        if( CellsFound++ == 0 )
+                        {
+                            Cell1 = this->CellsMatrix[y][x];
+                        }
+                        else if ( CellsFound == 1 )
+                        {
+                            Cell2 = this->CellsMatrix[y][x];
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }/*x*/
+                
+                if( CellsFound == 2)
+                {
+                    PairsFound[PairsFoundNo].Cell1 = Cell1;
+                    PairsFound[PairsFoundNo].Cell2 = Cell2;
+                    PairsFoundNo++;
+                }
+                
+                /* Check the pairs found for current line */
+                for( int pairIdx = 0; pairIdx < PairsFoundNo; pairIdx++ )
+                {
+                    pair_t pair1 = PairsFound[pairIdx];
+                    for( int pairIdx2 = pairIdx; pairIdx2 < PairsFoundNo; pairIdx2++ )
+                    {
+                        pair_t pair2 = PairsFound[pairIdx2];
+                        
+                        /* If the pairs are on the same coordinates then we have a "hidden pair */
+                        if(  ( (pair1.Cell1.Coord == pair2.Cell1.Coord) && (pair1.Cell2.Coord == pair2.Cell2.Coord) ) ||
+                                ( (pair1.Cell1.Coord == pair2.Cell2.Coord) && (pair1.Cell2.Coord == pair2.Cell1.Coord) ))
+                        {
+                            /* A pair was found - delete those possibilities from other cells */
+                            for( int x = 0; x < this->Size; x++ )
+                            {
+                                cell_extended_t CurrentCell = this->CellsMatrix[y][x];
+                                if(  (CurrentCell.Coord != pair1.Cell1.Coord && CurrentCell.Coord != pair1.Cell2.Coord) &&
+                                        (CurrentCell.Coord != pair2.Cell1.Coord && CurrentCell.Coord != pair2.Cell2.Coord))
+                                {
+                                    this->RemovePossibility( x, y, pair1.Cell1.val );
+                                    this->RemovePossibility( x, y, pair2.Cell1.val );
+                                }
+                            }
+                        }
+                    }
+                }
+                
+            }/*chrIdx*/
+        }/*y*/
         
     }
     
@@ -695,150 +942,6 @@ private:
                 }
             }
         }
-    }
-    
-    void Algo_Omission()
-    {
-        /**
-         * https://www.learn-sudoku.com/omission.html
-         *
-         */
-        
-        /* Based on this method:
-         * https://www.youtube.com/watch?v=ld0hChtBLno&t=592s
-         * */
-        
-        /** Get each cell from each line */
-        for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
-        {
-            char CurrentChar = this->Charset[chrIdx];
-            for( int y = 0; y < this->Size; y++ )
-            {
-                uint8_t Appearances = 0;
-                uint8_t InLastBlock = 0;
-                bool OmissionPossible = false;
-                
-                for( int x = 0; x < this->Size; x++ )
-                {
-                   
-                    if( IsInPossibleSolutionsList(x, y, CurrentChar) )
-                    {
-                        if( Appearances == 0 )
-                        {
-                            InLastBlock = this->CellsMatrix[y][x].BlockNo;
-                            Appearances++;
-                        }
-                        else
-                        {
-                            if( this->CellsMatrix[y][x].BlockNo == InLastBlock )
-                            {
-                                OmissionPossible = true;
-                            }
-                            else
-                            {
-                                OmissionPossible = false;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    /* When last column is reached, verify the results */
-                    if( x == this->Size - 1 )
-                    {
-                        if( OmissionPossible == true )
-                        {
-                            /* Remove the the other elements from the current cell as solution must be on this line */
-                            coord_t BlockElements[SUDOKU_MAX_SIZE];
-                            this->GetBlockElements(InLastBlock, BlockElements);
-                            for( int elemIdx = 0; elemIdx < this->Size; elemIdx++ )
-                            {
-                                cell_extended_t &currentCell = this->CellsMatrix[BlockElements[elemIdx].y][BlockElements[elemIdx].x];
-                                
-                                if( currentCell.val != UNSOLVED_SYMBOL )
-                                    continue;
-                                
-                                if( currentCell.Coord.y != y )
-                                {
-                                    this->RemovePossibility(currentCell.Coord.x, currentCell.Coord.y, CurrentChar);
-                                }
-                            }
-                        }
-                    }/* is last column?*/
-                }/*x*/
-            }/*y*/
-        }/*chrIdx */
-        
-        /** Get each cell from each column */
-        for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
-        {
-            char CurrentChar = this->Charset[chrIdx];
-            for( int x = 0; x < this->Size; x++ )
-            {
-                uint8_t Appearances = 0;
-                uint8_t InLastBlock = 0;
-                bool OmissionPossible = false;
-            
-                for( int y = 0; y < this->Size; y++ )
-                {
-                
-                    if( IsInPossibleSolutionsList(x, y, CurrentChar) )
-                    {
-                        if( Appearances == 0 )
-                        {
-                            InLastBlock = this->CellsMatrix[y][x].BlockNo;
-                            Appearances++;
-                        }
-                        else
-                        {
-                            if( this->CellsMatrix[y][x].BlockNo == InLastBlock )
-                            {
-                                OmissionPossible = true;
-                            }
-                            else
-                            {
-                                OmissionPossible = false;
-                                break;
-                            }
-                        }
-                    }
-                
-                    /* When last line is reached, verify the results */
-                    if( y == this->Size - 1 )
-                    {
-                        if( OmissionPossible == true )
-                        {
-                            /* Remove the the other elements from the current cell as solution must be on this column */
-                            coord_t BlockElements[SUDOKU_MAX_SIZE];
-                            this->GetBlockElements(InLastBlock, BlockElements);
-                            for( int elemIdx = 0; elemIdx < this->Size; elemIdx++ )
-                            {
-                                cell_extended_t &currentCell = this->CellsMatrix[BlockElements[elemIdx].y][BlockElements[elemIdx].x];
-                            
-                                if( currentCell.val != UNSOLVED_SYMBOL )
-                                    continue;
-                            
-                                if( currentCell.Coord.x != x )
-                                {
-                                    this->RemovePossibility(currentCell.Coord.x, currentCell.Coord.y, CurrentChar);
-                                }
-                            }
-                        }
-                    }/* is last line?*/
-                }/*x*/
-            }/*y*/
-        }/*chrIdx */
-
-//            printf("\tUnique solution: '%c'\n", Unique);
-//            printf("\tAparitions: \n");
-//            for(int i = 0; i < this->Size; i++)
-//            {
-//                if( Apparitions[i] > 0 )
-//                {
-//                    printf("\t\t'%c' = %d\n", this->Charset[i], Apparitions[i] );
-//                }
-//            }
-        int dummyBreakpoint = 0;
-        
     }
     
     void Algo_NextStrategy()
@@ -927,7 +1030,7 @@ private:
         this->CellsSolved++;
         
         /* Update board possibilities every time a solution is being found */
-        this->Algo_UpdateCellPossibilities();
+        this->Algo_UpdatePossibilitiesTable();
         
         /* Update visual board containing last solution */
         PrintBoard();

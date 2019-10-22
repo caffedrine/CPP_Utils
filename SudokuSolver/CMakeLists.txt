@@ -39,8 +39,8 @@ link_directories(${Proj_INCLUDE_DIRS})
 add_executable (${PROJECT_NAME} ${Proj_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${Proj_INCLUDE_DIRS})
 
-if(NOT UNIX)
-    target_link_libraries(${PROJECT_NAME} libstdc++)
+if(NOT LINUX)
+#    target_link_libraries(${PROJECT_NAME} libstdc++)
 endif()
 
 #target_link_libraries(${PROJECT_NAME} pthread)
