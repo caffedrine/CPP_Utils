@@ -78,7 +78,6 @@ class SudokuBoard
     typedef struct
     {
         char Val;
-        coord_t Coord;
     } possibility_t;
     
     /** Struct to define a basic cell used by user to input it's data */
@@ -89,6 +88,37 @@ class SudokuBoard
         uint8_t IsAvailable;
         possibility_t PossibleSolutions[SUDOKU_MAX_SIZE];
         coord_t Coord;
+        
+        uint8_t GetPossibleSolutionsNumber()
+        {
+            uint8_t Result = 0;
+            for( uint8_t solIdx = 0; solIdx < SUDOKU_MAX_SIZE; solIdx++)
+            {
+                if( PossibleSolutions[solIdx].Val == 0)
+                    break;
+                Result++;
+            }
+            
+            return Result;
+        }
+        
+        bool ContainSolution(char Solution)
+        {
+            bool Result = false;
+            for( int solIdx = 0; solIdx < SUDOKU_MAX_SIZE; solIdx++ )
+            {
+                if( PossibleSolutions[solIdx].Val == 0)
+                    break;
+               
+                if( PossibleSolutions[solIdx].Val == Solution )
+                {
+                    Result = true;
+                    break;
+                }
+            }
+            return Result;
+        }
+        
     } cell_extended_t;
     
     typedef struct
@@ -793,7 +823,7 @@ private:
          * http://hodoku.sourceforge.net/en/tech_hidden.php
          */
         
-        /** Check each line */
+        /** Lines */
         for( int y = 0; y < this->Size; y++ )
         {
             int PairsFoundNo = 0;
@@ -860,7 +890,7 @@ private:
             }/*chrIdx*/
         }/*y*/
     
-        /** Check each column */
+        /** Columns */
         for( int x = 0; x < this->Size; x++ )
         {
             int PairsFoundNo = 0;
@@ -927,7 +957,45 @@ private:
             }/*chrIdx*/
         }/*x*/
         
-        
+        /** Blocks */
+        for( int CurrentBlock = 0; CurrentBlock < this->Size; CurrentBlock++ )
+        {
+            /* Get all cells within block */
+            int UnsolvedBlockCellsNo = 0;
+            cell_extended_t BlockCells[SUDOKU_MAX_SIZE];
+            UnsolvedBlockCellsNo = this->GetBlockElements(CurrentBlock, BlockCells, true);
+            
+            /* Keep only cells with two possibilities */
+            int TwoSolutionsCellsNo = 0;
+            cell_extended_t TwoSolutionsCells[SUDOKU_MAX_SIZE];
+            for( int cellIdx = 0; cellIdx < UnsolvedBlockCellsNo; cellIdx++ )
+            {
+                if( this->GetAllPossibleSolutions(BlockCells[cellIdx].Coord.x, BlockCells[cellIdx].Coord.y) == 2 )
+                {
+                    TwoSolutionsCells[TwoSolutionsCellsNo++] = BlockCells[cellIdx];
+                }
+            }
+    
+            if(TwoSolutionsCellsNo > 2)
+            {
+                /* Look for pairs with the same solution */
+                for( int cellIdx = 0; cellIdx < TwoSolutionsCellsNo; cellIdx++ )
+                {
+                    cell_extended_t CurrentCell = TwoSolutionsCells[cellIdx];
+                    for( int cellIdx2 = cellIdx; cellIdx2 < TwoSolutionsCellsNo; cellIdx2++  )
+                    {
+                        cell_extended_t CurrentCell2 = TwoSolutionsCells[cellIdx2];
+                        if( this->HaveSameSolutions( &CurrentCell, &CurrentCell2 ) )
+                        {
+                            
+                            this->RemoveAllPosibilitiesExcept()
+                        }
+                    }
+                }
+                
+            }
+            
+        }/*CurrentBlock*/
     }
     
     void Algo_NakedTriplets()
@@ -1193,8 +1261,6 @@ private:
                     {
                         possibility_t possibility;
                         possibility.Val = CurrentTryChar;
-                        possibility.Coord.y = y;
-                        possibility.Coord.x = x;
                         PossibleSolutionsBuffer[PossibleSollutions++] = possibility;
                     }
                     else
@@ -1282,8 +1348,6 @@ private:
                     {
                         possibility_t possibility;
                         possibility.Val = CurrentTryChar;
-                        possibility.Coord.y = y;
-                        possibility.Coord.x = x;
                         PossibleSolutionsBuffer[PossibleSollutions++] = possibility;
                     }
                     else
@@ -1318,7 +1382,7 @@ private:
         }
         throw Exception("CharFromCharsetToIndex", "Char not present into array");
     }
-    uint8_t GetBlockElements(uint8_t in_GroupId, coord_t *out_Elements)
+    uint8_t GetBlockElements(uint8_t in_GroupId, coord_t *out_Elements, bool ExcludeSolved = false)
     {
         uint8_t ElementsIndex = 0;
         coord_t tmpCoord;
@@ -1327,6 +1391,11 @@ private:
         {
             for( int x = 0; x < this->Size; x++ )
             {
+                if( ExcludeSolved == true &&  this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL) /* Exclude already solved if specified */
+                {
+                    continue;
+                }
+                
                 if( this->CellsMatrix[y][x].BlockNo == in_GroupId )
                 {
                     tmpCoord.x = x;
@@ -1336,6 +1405,50 @@ private:
             }
         }
         return ElementsIndex;
+    }
+    uint8_t GetBlockElements(uint8_t in_GroupId, cell_extended_t *out_Elements, bool ExcludeSolved = false)
+    {
+        uint8_t ElementsIndex = 0;
+        cell_extended_t tmpCell;
+        
+        for( int y = 0; y < this->Size; y++ )
+        {
+            for( int x = 0; x < this->Size; x++ )
+            {
+                if( ExcludeSolved == true &&  this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL) /* Exclude already solved if specified */
+                {
+                    continue;
+                }
+                
+                if( this->CellsMatrix[y][x].BlockNo == in_GroupId )
+                {
+                    tmpCell = this->CellsMatrix[y][x];
+                    out_Elements[ElementsIndex++] = tmpCell;
+                }
+            }
+        }
+        return ElementsIndex;
+    }
+    bool HaveSameSolutions( cell_extended_t *Cell1, cell_extended_t *Cell2)
+    {
+        bool Result = true;
+        if(Cell1->GetPossibleSolutionsNumber() != Cell2->GetPossibleSolutionsNumber())
+        {
+            Result = false;
+        }
+        else
+        {
+            for( int solutionsCell1 = 0; solutionsCell1 < this->Size; solutionsCell1++ )
+            {
+                if( !this->IsInPossibleSolutionsList( Cell2->Coord.x, Cell2->Coord.y, Cell1->PossibleSolutions[solutionsCell1].Val ) )
+                {
+                    Result = false;
+                    break;
+                }
+            }
+        }
+        
+        return Result;
     }
     uint8_t GetAvailableCellsOnBlock(uint8_t BlockId)
     {
