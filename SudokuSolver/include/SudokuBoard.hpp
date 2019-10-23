@@ -1143,6 +1143,38 @@ private:
             }
         }
     }
+    
+    void RemoveAllPosibilitiesExcept( uint8_t x, uint8_t y, char Exception )
+    {
+        for(int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
+        {
+            if( this->Charset[chrIdx] != Exception)
+            {
+                this->RemovePossibility(x, y, this->Charset[chrIdx]);
+            }
+        }
+    }
+    
+    void RemoveAllPosibilitiesExcept( uint8_t x, uint8_t y, char *Exceptions, uint8_t ExceptionsNo )
+    {
+        for(int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
+        {
+            bool IsOnExceptionList = false;
+            char currChr = this->Charset[chrIdx];
+            for( int exceptionIdx = 0; exceptionIdx < ExceptionsNo; exceptionIdx++ )
+            {
+                if( currChr == Exceptions[exceptionIdx] )
+                {
+                    IsOnExceptionList = true;
+                }
+            }
+            if( !IsOnExceptionList )
+            {
+                this->RemovePossibility(x, y, currChr);
+            }
+        }
+    }
+    
     bool IsInPossibleSolutionNoCrossCheck(uint8_t x, uint8_t y, char SolutionToCheck)
     {
         bool Result = false;
