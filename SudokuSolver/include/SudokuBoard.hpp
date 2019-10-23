@@ -867,6 +867,74 @@ private:
                 
             }/*chrIdx*/
         }/*y*/
+    
+        /** Check each column */
+        for( int x = 0; x < this->Size; x++ )
+        {
+            int PairsFoundNo = 0;
+            pair_t PairsFound[SUDOKU_MAX_SIZE];
+            for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
+            {
+                char CurrentSymbol = this->Charset[chrIdx];
+                cell_extended_t Cell1 = {0}, Cell2 = {0};
+                int CellsFound = 0;
+            
+                for( int y = 0; y < this->Size; y++ )
+                {
+                    if( this->IsInPossibleSolutionsList(x, y, CurrentSymbol) )
+                    {
+                        if( CellsFound++ == 0 )
+                        {
+                            Cell1 = this->CellsMatrix[y][x];
+                        }
+                        else if ( CellsFound == 1 )
+                        {
+                            Cell2 = this->CellsMatrix[y][x];
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }/*y*/
+            
+                if( CellsFound == 2)
+                {
+                    PairsFound[PairsFoundNo].Cell1 = Cell1;
+                    PairsFound[PairsFoundNo].Cell2 = Cell2;
+                    PairsFoundNo++;
+                }
+            
+                /* Check the pairs found for current line */
+                for( int pairIdx = 0; pairIdx < PairsFoundNo; pairIdx++ )
+                {
+                    pair_t pair1 = PairsFound[pairIdx];
+                    for( int pairIdx2 = pairIdx; pairIdx2 < PairsFoundNo; pairIdx2++ )
+                    {
+                        pair_t pair2 = PairsFound[pairIdx2];
+                    
+                        /* If the pairs are on the same coordinates then we have a "hidden pair */
+                        if(  ( (pair1.Cell1.Coord == pair2.Cell1.Coord) && (pair1.Cell2.Coord == pair2.Cell2.Coord) ) ||
+                             ( (pair1.Cell1.Coord == pair2.Cell2.Coord) && (pair1.Cell2.Coord == pair2.Cell1.Coord) ))
+                        {
+                            /* A pair was found - delete those possibilities from other cells */
+                            for( int y = 0; y < this->Size; y++ )
+                            {
+                                cell_extended_t CurrentCell = this->CellsMatrix[y][x];
+                                if(  (CurrentCell.Coord != pair1.Cell1.Coord && CurrentCell.Coord != pair1.Cell2.Coord) &&
+                                     (CurrentCell.Coord != pair2.Cell1.Coord && CurrentCell.Coord != pair2.Cell2.Coord))
+                                {
+                                    this->RemovePossibility( x, y, pair1.Cell1.val );
+                                    this->RemovePossibility( x, y, pair2.Cell1.val );
+                                }
+                            }/*y*/
+                        }
+                    }
+                }
+            
+            }/*chrIdx*/
+        }/*x*/
+        
         
     }
     
