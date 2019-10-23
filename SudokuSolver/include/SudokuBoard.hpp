@@ -234,20 +234,14 @@ public:
     
             Algo_UpdatePossibilitiesTable();
             if( this->IsSolved() ) break;
-            
-            Algo_SafeMoves();
+    
+            Algo_FullHouse_LastDigit();
             if( this->IsSolved() ) break;
-            
-            Algo_CheckIntersections();
-            if( this->IsSolved() ) break;
-            
-            Algo_ColumnsAndRowsPossibilities();
+    
+            Algo_HiddenSingles();
             if( this->IsSolved() ) break;
             
             Algo_NakedSingles();
-            if( this->IsSolved() ) break;
-            
-            Algo_NextStrategy();
             if( this->IsSolved() ) break;
             
             /* Update time elapsed */
@@ -282,8 +276,49 @@ private:
     /* Flag indicating whether possibility table is fully updated or is updating */
     bool PossibilityTableUpdateRequest = true;
     
-    /* Algorithms to be applied */
-    void Algo_SafeMoves()
+    void Algo_UpdatePossibilitiesTable()
+    {
+        /**
+         * http://hodoku.sourceforge.net/en/tech_intersections.php#lc12
+         *
+         */
+        
+        /* Only to know when was called first time */
+        PossibilityTableUpdated = true;
+        
+        /* Update all possibilities on all cells without cross check. Some of them will be removed after crosscheck. */
+        for( int y = 0; y < this->Size; y++ )
+        {
+            for( int x = 0; x < this->Size; x++ )
+            {
+                ClearPossibleSolutions(x, y);
+                GetAllPossibleSolutionsNoCrossCheck(x, y, this->CellsMatrix[y][x].PossibleSolutions);
+            }
+        }
+        
+        /* While there are possibilitie sbeing removed, keep updating table */
+        while( PossibilityTableUpdateRequest )
+        {
+            /* As long as table update process is not finished this will be set to true by algorithms */
+            PossibilityTableUpdateRequest = false;
+            
+            /** Confirmed */
+            Algo_LockedCandidates_Type1_Pointing();
+            Algo_NakedPairs();
+            
+            /** Unconfirmed */
+            Algo_LockedCandidates_Type2_Claiming();
+            Algo_HiddenPairs();
+        }
+        
+        /* To make sure next time will try to update as well */
+        PossibilityTableUpdateRequest = true;
+        
+        int dummy = 0;
+        
+    }/*void Algo_UpdatePossibilitiesTable()*/
+    
+    void Algo_FullHouse_LastDigit()
     {
         for( int y = 0; y < this->Size; y++ )
         {
@@ -303,7 +338,7 @@ private:
         } /*Y*/
     }
     
-    void Algo_CheckIntersections()
+    void Algo_HiddenSingles()
     {
         /* Itterate through all symbols */
         for( int ChrIdx = 0; ChrIdx < this->Size; ChrIdx++ )
@@ -371,13 +406,35 @@ private:
         int dummyBreak = 0;
     }
     
-    void Algo_ColumnsAndRowsPossibilities()
+    void Algo_NakedSingles()
     {
-        /* Based on this method:
-         * https://www.youtube.com/watch?v=ld0hChtBLno&t=592s
-         * */
+        /*
+         * https://www.learn-sudoku.com/lone-singles.html
+         *
+         * If there is a cell in a block with only one possibility then that is the solution.
+         */
         
-        /** Get each cell from each line */
+        
+        /** Blocks */
+        for( int blockId = 0; blockId < this->Size; blockId++ )
+        {
+            coord_t BlockElements[SUDOKU_MAX_SIZE];
+            for( int elementIdx = 0; elementIdx < this->GetBlockElements(blockId, BlockElements); elementIdx++ )
+            {
+                coord_t CurrentCell = BlockElements[elementIdx];
+                if( GetAllPossibleSolutions(CurrentCell.x, CurrentCell.y) == 1 )
+                {
+                    this->CellsMatrix[CurrentCell.y][CurrentCell.x].val = this->CellsMatrix[CurrentCell.y][CurrentCell.x].PossibleSolutions[0].Val;
+                    this->IncCellsSolved();
+                }
+            }
+        }
+        
+        /* Based on this method:
+ * https://www.youtube.com/watch?v=ld0hChtBLno&t=592s
+ * */
+        
+        /** Lines */
         for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
         {
             char CurrentChar = this->Charset[chrIdx];
@@ -404,7 +461,7 @@ private:
             }/*y*/
         }/*chrIdx */
         
-        /** Get each cell from each column */
+        /** Columns */
         for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
         {
             char CurrentChar = this->Charset[chrIdx];
@@ -440,50 +497,7 @@ private:
 //                    printf("\t\t'%c' = %d\n", this->Charset[i], Apparitions[i] );
 //                }
 //            }
-        int dummyBreakpoint = 0;
     }
-    
-    void Algo_UpdatePossibilitiesTable()
-    {
-        /**
-         * http://hodoku.sourceforge.net/en/tech_intersections.php#lc12
-         *
-         */
-        
-        /* Only to know when was called first time */
-        PossibilityTableUpdated = true;
-        
-        /* Update all possibilities on all cells without cross check. Some of them will be removed after crosscheck. */
-        for( int y = 0; y < this->Size; y++ )
-        {
-            for( int x = 0; x < this->Size; x++ )
-            {
-                ClearPossibleSolutions(x, y);
-                GetAllPossibleSolutionsNoCrossCheck(x, y, this->CellsMatrix[y][x].PossibleSolutions);
-            }
-        }
-        
-        /* While there are possibilitie sbeing removed, keep updating table */
-        while( PossibilityTableUpdateRequest )
-        {
-            /* As long as table update process is not finished this will be set to true by algorithms */
-            PossibilityTableUpdateRequest = false;
-            
-            /** Confirmed */
-            Algo_LockedCandidates_Type1_Pointing();
-            Algo_NakedPairs();
-            
-            /** Unconfirmed */
-            Algo_LockedCandidates_Type2_Claiming();
-            Algo_HiddenPairs();
-        }
-        
-        /* To make sure next time will try to update as well */
-        PossibilityTableUpdateRequest = true;
-        
-        int dummy = 0;
-        
-    }/*void Algo_UpdatePossibilitiesTable()*/
     
     void Algo_LockedCandidates_Type1_Pointing()
     {
@@ -698,28 +712,6 @@ private:
 //            }
         int dummyBreakpoint = 0;
         
-    }
-    
-    void Algo_NakedSingles()
-    {
-        /*
-         * https://www.learn-sudoku.com/lone-singles.html
-         *
-         * If there is a cell in a block with only one possibility then that is the solution.
-         */
-        for( int blockId = 0; blockId < this->Size; blockId++ )
-        {
-            coord_t BlockElements[SUDOKU_MAX_SIZE];
-            for( int elementIdx = 0; elementIdx < this->GetBlockElements(blockId, BlockElements); elementIdx++ )
-            {
-                coord_t CurrentCell = BlockElements[elementIdx];
-                if( GetAllPossibleSolutions(CurrentCell.x, CurrentCell.y) == 1 )
-                {
-                    this->CellsMatrix[CurrentCell.y][CurrentCell.x].val = this->CellsMatrix[CurrentCell.y][CurrentCell.x].PossibleSolutions[0].Val;
-                    this->IncCellsSolved();
-                }
-            }
-        }
     }
     
     void Algo_NakedPairs()
@@ -1012,7 +1004,7 @@ private:
         }
     }
     
-    void Algo_NextStrategy()
+    void Algo_HiddenTriplets()
     {
         /**
          * https://www.youtube.com/watch?v=AwBdgHqUmMQ - 5:15
@@ -1092,7 +1084,7 @@ private:
         printf("\n");
     }
 
-/* Basic solving when for 1 possibility in a cell */
+    /** **/
     void IncCellsSolved()
     {
         this->CellsSolved++;
@@ -1143,7 +1135,6 @@ private:
             }
         }
     }
-    
     void RemoveAllPosibilitiesExcept( uint8_t x, uint8_t y, char Exception )
     {
         for(int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
@@ -1154,7 +1145,6 @@ private:
             }
         }
     }
-    
     void RemoveAllPosibilitiesExcept( uint8_t x, uint8_t y, char *Exceptions, uint8_t ExceptionsNo )
     {
         for(int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
@@ -1174,7 +1164,6 @@ private:
             }
         }
     }
-    
     bool IsInPossibleSolutionNoCrossCheck(uint8_t x, uint8_t y, char SolutionToCheck)
     {
         bool Result = false;
@@ -1187,6 +1176,36 @@ private:
             Result = true;
         }
         return Result;
+    }
+    uint8_t GetAllPossibleSolutionsNoCrossCheck(uint8_t x, uint8_t y, possibility_t *PossibleSolutionsBuffer = nullptr)
+    {
+        uint8_t PossibleSollutions = 0;
+        if( this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL )
+        {
+            for( int TryCharIdx = 0; TryCharIdx < this->Size; TryCharIdx++ )
+            {
+                /* Variable to store current char to be stored */
+                char CurrentTryChar = Charset[TryCharIdx];
+                /* Check whether it's safe to place this symbol on this vox */
+                if( this->IsInPossibleSolutionNoCrossCheck(x, y, CurrentTryChar) )
+                {
+                    if( PossibleSolutionsBuffer != nullptr )
+                    {
+                        possibility_t possibility;
+                        possibility.Val = CurrentTryChar;
+                        possibility.Coord.y = y;
+                        possibility.Coord.x = x;
+                        PossibleSolutionsBuffer[PossibleSollutions++] = possibility;
+                    }
+                    else
+                    {
+                        PossibleSollutions++;
+                    }
+                }
+                
+            }
+        }
+        return PossibleSollutions;
     }
     bool AlreadyOnBlock(uint8_t BlockId, char TargetChar)
     {
@@ -1225,36 +1244,6 @@ private:
             }
         }
         return false;
-    }
-    uint8_t GetAllPossibleSolutionsNoCrossCheck(uint8_t x, uint8_t y, possibility_t *PossibleSolutionsBuffer = nullptr)
-    {
-        uint8_t PossibleSollutions = 0;
-        if( this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL )
-        {
-            for( int TryCharIdx = 0; TryCharIdx < this->Size; TryCharIdx++ )
-            {
-                /* Variable to store current char to be stored */
-                char CurrentTryChar = Charset[TryCharIdx];
-                /* Check whether it's safe to place this symbol on this vox */
-                if( this->IsInPossibleSolutionNoCrossCheck(x, y, CurrentTryChar) )
-                {
-                    if( PossibleSolutionsBuffer != nullptr )
-                    {
-                        possibility_t possibility;
-                        possibility.Val = CurrentTryChar;
-                        possibility.Coord.y = y;
-                        possibility.Coord.x = x;
-                        PossibleSolutionsBuffer[PossibleSollutions++] = possibility;
-                    }
-                    else
-                    {
-                        PossibleSollutions++;
-                    }
-                }
-                
-            }
-        }
-        return PossibleSollutions;
     }
     bool IsInPossibleSolutionsList(uint8_t x, uint8_t y, char SolutionToCheck)
     {
@@ -1348,7 +1337,6 @@ private:
         }
         return ElementsIndex;
     }
-/* Advanced solving */
     uint8_t GetAvailableCellsOnBlock(uint8_t BlockId)
     {
         uint8_t Result = 0;
