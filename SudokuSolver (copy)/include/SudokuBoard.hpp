@@ -78,7 +78,6 @@ class SudokuBoard
     typedef struct
     {
         char Val;
-        coord_t Coord;
     } possibility_t;
     
     /** Struct to define a basic cell used by user to input it's data */
@@ -345,7 +344,7 @@ private:
             
             /** Unconfirmed */
             Algo_LockedCandidates_Type2_Claiming();
-            Algo_HiddenPairs();
+//            Algo_HiddenPairs();
         }
         
         /* To make sure next time will try to update as well */
@@ -831,7 +830,7 @@ private:
         /**
          * http://hodoku.sourceforge.net/en/tech_hidden.php
          */
-
+        
         /** Lines */
         for( int y = 0; y < this->Size; y++ )
         {
@@ -1144,7 +1143,7 @@ private:
     {
         for( int pIdx = 0; pIdx < this->Size; pIdx++ )
         {
-            possibility_t posibility = this->CellsMatrix[y][x].PossibleSolutions[pIdx];
+            possibility_t &posibility = this->CellsMatrix[y][x].PossibleSolutions[pIdx];
             if( posibility.Val == 0 )
                 break;
             
@@ -1311,8 +1310,6 @@ private:
                     {
                         possibility_t possibility;
                         possibility.Val = CurrentTryChar;
-                        possibility.Coord.y = y;
-                        possibility.Coord.x = x;
                         PossibleSolutionsBuffer[PossibleSollutions++] = possibility;
                     }
                     else
@@ -1613,11 +1610,11 @@ private:
                     
                     if( this->CellsMatrix[y][x].ContainSolution(Solution) )
                     {
+                        Ret++;
                         if( ApparitionsArray != nullptr )
                         {
                             ApparitionsArray[Ret] = this->CellsMatrix[y][x];
                         }
-                        Ret++;
                     }
                 }
             }
@@ -1633,11 +1630,11 @@ private:
         {
             if( this->CellsMatrix[y][X].ContainSolution(Solution) )
             {
+                Ret++;
                 if( ApparitionsArray != nullptr )
                 {
                     ApparitionsArray[Ret] = this->CellsMatrix[y][X];
                 }
-                Ret++;
             }
         }
         return Ret;
@@ -1651,11 +1648,11 @@ private:
         {
             if( this->CellsMatrix[Y][x].ContainSolution(Solution) )
             {
+                Ret++;
                 if( ApparitionsArray != nullptr )
                 {
                     ApparitionsArray[Ret] = this->CellsMatrix[Y][x];
                 }
-                Ret++;
             }
         }
         return Ret;
