@@ -856,7 +856,7 @@ private:
             for(int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++)
             {
                 possibility_pair_t pair1 = PossibilityPairs[pairIdx];
-                for( int pairIdx2 = 0; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
+                for( int pairIdx2 = pairIdx + 1; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
                 {
                     possibility_pair_t pair2 = PossibilityPairs[pairIdx2];
                     if(  ((pair1.Cell1.Coord == pair2.Cell1.Coord) &&  (pair1.Cell2.Coord == pair2.Cell2.Coord) ) ||
@@ -898,7 +898,7 @@ private:
             for(int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++)
             {
                 possibility_pair_t pair1 = PossibilityPairs[pairIdx];
-                for( int pairIdx2 = 0; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
+                for( int pairIdx2 = pairIdx + 1; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
                 {
                     possibility_pair_t pair2 = PossibilityPairs[pairIdx2];
                     if(  ((pair1.Cell1.Coord == pair2.Cell1.Coord) &&  (pair1.Cell2.Coord == pair2.Cell2.Coord) ) ||
@@ -940,7 +940,7 @@ private:
             for(int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++)
             {
                 possibility_pair_t pair1 = PossibilityPairs[pairIdx];
-                for( int pairIdx2 = 0; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
+                for( int pairIdx2 = pairIdx + 1; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
                 {
                     possibility_pair_t pair2 = PossibilityPairs[pairIdx2];
                     if(  ((pair1.Cell1.Coord == pair2.Cell1.Coord) &&  (pair1.Cell2.Coord == pair2.Cell2.Coord) ) ||
