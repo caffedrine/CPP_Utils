@@ -53,18 +53,18 @@ class SudokuBoard
     {
         uint8_t x;
         uint8_t y;
-    
-        bool operator==(coord_t const  &f) const
+        
+        bool operator==(coord_t const &f) const
         {
-           bool Result = false;
-           if( (x == f.x) && (y == f.y) )
-           {
+            bool Result = false;
+            if( (x == f.x) && (y == f.y) )
+            {
                 Result = true;
-           }
-           return Result;
+            }
+            return Result;
         }
-    
-        bool operator!=(coord_t const  &f) const
+        
+        bool operator!=(coord_t const &f) const
         {
             bool Result = false;
             if( (x != f.x) || (y != f.y) )
@@ -92,24 +92,23 @@ class SudokuBoard
         uint8_t GetPossibleSolutionsNumber()
         {
             uint8_t Result = 0;
-            for( uint8_t solIdx = 0; solIdx < SUDOKU_MAX_SIZE; solIdx++)
+            for( uint8_t solIdx = 0; solIdx < SUDOKU_MAX_SIZE; solIdx++ )
             {
-                if( PossibleSolutions[solIdx].Val == 0)
+                if( PossibleSolutions[solIdx].Val == 0 )
                     break;
                 Result++;
             }
             
             return Result;
         }
-        
         bool ContainSolution(char Solution)
         {
             bool Result = false;
             for( int solIdx = 0; solIdx < SUDOKU_MAX_SIZE; solIdx++ )
             {
-                if( PossibleSolutions[solIdx].Val == 0)
+                if( PossibleSolutions[solIdx].Val == 0 )
                     break;
-               
+                
                 if( PossibleSolutions[solIdx].Val == Solution )
                 {
                     Result = true;
@@ -125,7 +124,14 @@ class SudokuBoard
     {
         cell_extended_t Cell1;
         cell_extended_t Cell2;
-    }pair_t;
+    } pair_t;
+    
+    typedef struct
+    {
+        cell_extended_t Cell1;
+        cell_extended_t Cell2;
+        char CommonSolution;
+    } possibility_pair_t;
     
     typedef struct
     {
@@ -261,16 +267,16 @@ public:
         while( !this->IsSolved() )
         {
             uint16_t StartProgress = this->CellsSolved;
-    
+            
             Algo_UpdatePossibilitiesTable();
             if( this->IsSolved() ) break;
-    
+            
             Algo_FullHouse_LastDigit();
             if( this->IsSolved() ) break;
-    
+            
             Algo_HiddenSingles();
             if( this->IsSolved() ) break;
-            
+
             Algo_NakedSingles();
             if( this->IsSolved() ) break;
             
@@ -532,26 +538,27 @@ private:
     void Algo_LockedCandidates_Type1_Pointing()
     {
         bool PrintLogs = false;
-    
+        
         for( int BlockId = 0; BlockId < this->Size; BlockId++ ) /* Loop through all blocks */
         {
             /* Matrix containing pairs of cells that are on the same line/row */
             small_pair_t SmallPairsFound[SUDOKU_MAX_SIZE] = {{0, 0}, {0, 0}, 0};
             this->GetSmallPairs(BlockId, SmallPairsFound);
-        
+            
             if( PrintLogs )
                 for( int pairIdx = 0; pairIdx < this->Size; pairIdx++ )
                 {
                     if( SmallPairsFound[pairIdx].Val == 0 ) break;
-                    printf("Block: %d, '%c' = [%d][%d] and [%d][%d]\n", BlockId, SmallPairsFound[pairIdx].Val, SmallPairsFound[pairIdx].element1.y, SmallPairsFound[pairIdx].element1.x, SmallPairsFound[pairIdx].element2.y, SmallPairsFound[pairIdx].element2.x);
+                    printf("Block: %d, '%c' = [%d][%d] and [%d][%d]\n", BlockId, SmallPairsFound[pairIdx].Val, SmallPairsFound[pairIdx].element1.y,
+                           SmallPairsFound[pairIdx].element1.x, SmallPairsFound[pairIdx].element2.y, SmallPairsFound[pairIdx].element2.x);
                 }
-        
+            
             /* Propagate restrictions which come by the pairs */
             for( int pairIdx = 0; pairIdx < this->Size; pairIdx++ )
             {
                 small_pair_t currPair = SmallPairsFound[pairIdx];
                 if( currPair.Val == 0 ) break; /* Break the loop if no more pairs there */
-            
+                
                 if( currPair.element1.x == currPair.element2.x ) /* Restrictions to be propagated over Y axis */
                 {
                     for( int y = 0; y < this->Size; y++ )
@@ -573,7 +580,7 @@ private:
             }
         }/* for each block */
         if( PrintLogs ) printf("\n");
-    
+        
         if( PrintLogs )
         {
             /* Display symbols for debugging*/
@@ -583,13 +590,13 @@ private:
                 for( int x = 0; x < this->Size; x++ )
                 {
                     if( this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL ) continue;
-                
+                    
                     printf("[%d][%d] = ", y, x);
                     for( int psIdx = 0; psIdx < this->Size; psIdx++ )
                     {
                         if( this->CellsMatrix[y][x].PossibleSolutions[psIdx].Val == 0 )
                             break;
-                    
+                        
                         printf("%c ", this->CellsMatrix[y][x].PossibleSolutions[psIdx].Val);
                     }
                     printf("\n");
@@ -781,7 +788,8 @@ private:
                     element2 = ElementsWithTwoSmallSolutions[elementIdx2];
                     
                     if( this->CellsMatrix[element1.y][element1.x].PossibleSolutions[0].Val == this->CellsMatrix[element2.y][element2.x].PossibleSolutions[0].Val
-                        && this->CellsMatrix[element1.y][element1.x].PossibleSolutions[1].Val == this->CellsMatrix[element2.y][element2.x].PossibleSolutions[1].Val )
+                        && this->CellsMatrix[element1.y][element1.x].PossibleSolutions[1].Val ==
+                           this->CellsMatrix[element2.y][element2.x].PossibleSolutions[1].Val )
                     {
                         naked_pair_t Pair;
                         Pair.element1 = element1;
@@ -826,175 +834,127 @@ private:
         /** Lines */
         for( int y = 0; y < this->Size; y++ )
         {
-            int PairsFoundNo = 0;
-            pair_t PairsFound[SUDOKU_MAX_SIZE];
+            /* Keep only keep only candidates which appear twice */
+            int PossibilityPairsNo = 0;
+            possibility_pair_t PossibilityPairs[SUDOKU_MAX_SIZE];
             for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
             {
-                char CurrentSymbol = this->Charset[chrIdx];
-                cell_extended_t Cell1 = {0}, Cell2 = {0};
-                int CellsFound = 0;
-                
-                for( int x = 0; x < this->Size; x++ )
+                char CurrentChar = this->Charset[chrIdx];
+                cell_extended_t CellsFound[SUDOKU_MAX_SIZE];
+            
+                if( this->GetApparitionsOnY(y, CurrentChar, CellsFound) == 2)
                 {
-                    if( this->IsInPossibleSolutionsList(x, y, CurrentSymbol) )
-                    {
-                        if( CellsFound++ == 0 )
-                        {
-                            Cell1 = this->CellsMatrix[y][x];
-                        }
-                        else if ( CellsFound == 1 )
-                        {
-                            Cell2 = this->CellsMatrix[y][x];
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                }/*x*/
-                
-                if( CellsFound == 2)
-                {
-                    PairsFound[PairsFoundNo].Cell1 = Cell1;
-                    PairsFound[PairsFoundNo].Cell2 = Cell2;
-                    PairsFoundNo++;
+                    possibility_pair_t pair;
+                    pair.Cell1 = CellsFound[0];
+                    pair.Cell2 = CellsFound[1];
+                    pair.CommonSolution = CurrentChar;
+                    PossibilityPairs[PossibilityPairsNo++] = pair;
                 }
-                
-                /* Check the pairs found for current line */
-                for( int pairIdx = 0; pairIdx < PairsFoundNo; pairIdx++ )
+            }
+        
+            /* Check whether we have solutions overlaping */
+            for(int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++)
+            {
+                possibility_pair_t pair1 = PossibilityPairs[pairIdx];
+                for( int pairIdx2 = 0; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
                 {
-                    pair_t pair1 = PairsFound[pairIdx];
-                    for( int pairIdx2 = pairIdx; pairIdx2 < PairsFoundNo; pairIdx2++ )
+                    possibility_pair_t pair2 = PossibilityPairs[pairIdx2];
+                    if(  ((pair1.Cell1.Coord == pair2.Cell1.Coord) &&  (pair1.Cell2.Coord == pair2.Cell2.Coord) ) ||
+                            ((pair1.Cell1.Coord == pair2.Cell2.Coord) &&  (pair1.Cell2.Coord == pair2.Cell1.Coord) ) )
                     {
-                        pair_t pair2 = PairsFound[pairIdx2];
-                        
-                        /* If the pairs are on the same coordinates then we have a "hidden pair */
-                        if(  ( (pair1.Cell1.Coord == pair2.Cell1.Coord) && (pair1.Cell2.Coord == pair2.Cell2.Coord) ) ||
-                                ( (pair1.Cell1.Coord == pair2.Cell2.Coord) && (pair1.Cell2.Coord == pair2.Cell1.Coord) ))
-                        {
-                            /* A pair was found - delete those possibilities from other cells */
-                            for( int x = 0; x < this->Size; x++ )
-                            {
-                                cell_extended_t CurrentCell = this->CellsMatrix[y][x];
-                                if(  (CurrentCell.Coord != pair1.Cell1.Coord && CurrentCell.Coord != pair1.Cell2.Coord) &&
-                                        (CurrentCell.Coord != pair2.Cell1.Coord && CurrentCell.Coord != pair2.Cell2.Coord))
-                                {
-                                    this->RemovePossibility( x, y, pair1.Cell1.val );
-                                    this->RemovePossibility( x, y, pair2.Cell1.val );
-                                }
-                            }
-                        }
+                        char ExceptionsList[2];
+                        ExceptionsList[0] = pair1.CommonSolution;
+                        ExceptionsList[1] = pair2.CommonSolution;
+                    
+                        this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
+                        this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
                     }
                 }
-                
-            }/*chrIdx*/
-        }/*y*/
+            }
+        }/* Lines */
     
         /** Columns */
         for( int x = 0; x < this->Size; x++ )
         {
-            int PairsFoundNo = 0;
-            pair_t PairsFound[SUDOKU_MAX_SIZE];
+            /* Keep only keep only candidates which appear twice */
+            int PossibilityPairsNo = 0;
+            possibility_pair_t PossibilityPairs[SUDOKU_MAX_SIZE];
             for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
             {
-                char CurrentSymbol = this->Charset[chrIdx];
-                cell_extended_t Cell1 = {0}, Cell2 = {0};
-                int CellsFound = 0;
+                char CurrentChar = this->Charset[chrIdx];
+                cell_extended_t CellsFound[SUDOKU_MAX_SIZE];
             
-                for( int y = 0; y < this->Size; y++ )
+                if( this->GetApparitionsOnX(x, CurrentChar, CellsFound) == 2)
                 {
-                    if( this->IsInPossibleSolutionsList(x, y, CurrentSymbol) )
-                    {
-                        if( CellsFound++ == 0 )
-                        {
-                            Cell1 = this->CellsMatrix[y][x];
-                        }
-                        else if ( CellsFound == 1 )
-                        {
-                            Cell2 = this->CellsMatrix[y][x];
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                }/*y*/
-            
-                if( CellsFound == 2)
-                {
-                    PairsFound[PairsFoundNo].Cell1 = Cell1;
-                    PairsFound[PairsFoundNo].Cell2 = Cell2;
-                    PairsFoundNo++;
+                    possibility_pair_t pair;
+                    pair.Cell1 = CellsFound[0];
+                    pair.Cell2 = CellsFound[1];
+                    pair.CommonSolution = CurrentChar;
+                    PossibilityPairs[PossibilityPairsNo++] = pair;
                 }
-            
-                /* Check the pairs found for current line */
-                for( int pairIdx = 0; pairIdx < PairsFoundNo; pairIdx++ )
+            }
+        
+            /* Check whether we have solutions overlaping */
+            for(int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++)
+            {
+                possibility_pair_t pair1 = PossibilityPairs[pairIdx];
+                for( int pairIdx2 = 0; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
                 {
-                    pair_t pair1 = PairsFound[pairIdx];
-                    for( int pairIdx2 = pairIdx; pairIdx2 < PairsFoundNo; pairIdx2++ )
+                    possibility_pair_t pair2 = PossibilityPairs[pairIdx2];
+                    if(  ((pair1.Cell1.Coord == pair2.Cell1.Coord) &&  (pair1.Cell2.Coord == pair2.Cell2.Coord) ) ||
+                         ((pair1.Cell1.Coord == pair2.Cell2.Coord) &&  (pair1.Cell2.Coord == pair2.Cell1.Coord) ) )
                     {
-                        pair_t pair2 = PairsFound[pairIdx2];
+                        char ExceptionsList[2];
+                        ExceptionsList[0] = pair1.CommonSolution;
+                        ExceptionsList[1] = pair2.CommonSolution;
                     
-                        /* If the pairs are on the same coordinates then we have a "hidden pair */
-                        if(  ( (pair1.Cell1.Coord == pair2.Cell1.Coord) && (pair1.Cell2.Coord == pair2.Cell2.Coord) ) ||
-                             ( (pair1.Cell1.Coord == pair2.Cell2.Coord) && (pair1.Cell2.Coord == pair2.Cell1.Coord) ))
-                        {
-                            /* A pair was found - delete those possibilities from other cells */
-                            for( int y = 0; y < this->Size; y++ )
-                            {
-                                cell_extended_t CurrentCell = this->CellsMatrix[y][x];
-                                if(  (CurrentCell.Coord != pair1.Cell1.Coord && CurrentCell.Coord != pair1.Cell2.Coord) &&
-                                     (CurrentCell.Coord != pair2.Cell1.Coord && CurrentCell.Coord != pair2.Cell2.Coord))
-                                {
-                                    this->RemovePossibility( x, y, pair1.Cell1.val );
-                                    this->RemovePossibility( x, y, pair2.Cell1.val );
-                                }
-                            }/*y*/
-                        }
+                        this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
+                        this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
                     }
                 }
-            
-            }/*chrIdx*/
-        }/*x*/
+            }
+        }/* Columns */
         
         /** Blocks */
         for( int CurrentBlock = 0; CurrentBlock < this->Size; CurrentBlock++ )
         {
-            /* Get all cells within block */
-            int UnsolvedBlockCellsNo = 0;
-            cell_extended_t BlockCells[SUDOKU_MAX_SIZE];
-            UnsolvedBlockCellsNo = this->GetBlockElements(CurrentBlock, BlockCells, true);
-            
-            /* Keep only cells with two possibilities */
-            int TwoSolutionsCellsNo = 0;
-            cell_extended_t TwoSolutionsCells[SUDOKU_MAX_SIZE];
-            for( int cellIdx = 0; cellIdx < UnsolvedBlockCellsNo; cellIdx++ )
+            /* Keep only keep only candidates which appear twice */
+            int PossibilityPairsNo = 0;
+            possibility_pair_t PossibilityPairs[SUDOKU_MAX_SIZE];
+            for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
             {
-                if( this->GetAllPossibleSolutions(BlockCells[cellIdx].Coord.x, BlockCells[cellIdx].Coord.y) == 2 )
+                char CurrentChar = this->Charset[chrIdx];
+                cell_extended_t CellsFound[SUDOKU_MAX_SIZE];
+                
+                if( this->GetApparitionsOnBlock(CurrentBlock, CurrentChar, CellsFound) == 2)
                 {
-                    TwoSolutionsCells[TwoSolutionsCellsNo++] = BlockCells[cellIdx];
+                    possibility_pair_t pair;
+                    pair.Cell1 = CellsFound[0];
+                    pair.Cell2 = CellsFound[1];
+                    pair.CommonSolution = CurrentChar;
+                    PossibilityPairs[PossibilityPairsNo++] = pair;
                 }
             }
-    
-            if(TwoSolutionsCellsNo > 2)
+            
+            /* Check whether we have solutions overlaping */
+            for(int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++)
             {
-                /* Look for pairs with the same solution */
-                for( int cellIdx = 0; cellIdx < TwoSolutionsCellsNo; cellIdx++ )
+                possibility_pair_t pair1 = PossibilityPairs[pairIdx];
+                for( int pairIdx2 = 0; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
                 {
-                    cell_extended_t CurrentCell = TwoSolutionsCells[cellIdx];
-                    for( int cellIdx2 = cellIdx; cellIdx2 < TwoSolutionsCellsNo; cellIdx2++  )
+                    possibility_pair_t pair2 = PossibilityPairs[pairIdx2];
+                    if(  ((pair1.Cell1.Coord == pair2.Cell1.Coord) &&  (pair1.Cell2.Coord == pair2.Cell2.Coord) ) ||
+                         ((pair1.Cell1.Coord == pair2.Cell2.Coord) &&  (pair1.Cell2.Coord == pair2.Cell1.Coord) ) )
                     {
-                        cell_extended_t CurrentCell2 = TwoSolutionsCells[cellIdx2];
-                        if( this->HaveSameSolutions( &CurrentCell, &CurrentCell2 ) )
-                        {
-                            
-                            this->RemoveAllPosibilitiesExcept()
-                        }
+                        char ExceptionsList[2];
+                        ExceptionsList[0] = pair1.CommonSolution;
+                        ExceptionsList[1] = pair2.CommonSolution;
+            
+                        this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
+                        this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
                     }
                 }
-                
             }
-            
         }/*CurrentBlock*/
     }
     
@@ -1036,7 +996,8 @@ private:
                     element2 = ElementsWithThreeSmallSolutions[elementIdx2];
                     
                     if( this->CellsMatrix[element1.y][element1.x].PossibleSolutions[0].Val == this->CellsMatrix[element2.y][element2.x].PossibleSolutions[0].Val
-                        && this->CellsMatrix[element1.y][element1.x].PossibleSolutions[1].Val == this->CellsMatrix[element2.y][element2.x].PossibleSolutions[1].Val )
+                        && this->CellsMatrix[element1.y][element1.x].PossibleSolutions[1].Val ==
+                           this->CellsMatrix[element2.y][element2.x].PossibleSolutions[1].Val )
                     {
                         naked_triplets_t Pair;
                         Pair.element1 = element1;
@@ -1122,7 +1083,7 @@ private:
             {
                 possibility_t possibileSolutions[SUDOKU_MAX_SIZE];
                 uint8_t SolutionsNumber = this->GetAllPossibleSolutions(x, y, possibileSolutions);
-                if( SolutionsNumber > 0 )// && SolutionsNumber <= 3 )
+                if( SolutionsNumber > 0  && SolutionsNumber <= 3 )
                 {
                     printf("[%d][%d] could have only %d solutions: ", y, x, SolutionsNumber);
                     for( int i = 0; i < SolutionsNumber; i++ )
@@ -1146,12 +1107,13 @@ private:
             printf("Block: %d have %d pairs:\n", BlockId, pairsFound);
             for( int pairIdx = 0; pairIdx < pairsFound; pairIdx++ )
             {
-                printf("\t'%c' = [%d][%d] and [%d][%d]\n", pairs[pairIdx].Val, pairs[pairIdx].element1.y, pairs[pairIdx].element1.x, pairs[pairIdx].element2.y, pairs[pairIdx].element2.x);
+                printf("\t'%c' = [%d][%d] and [%d][%d]\n", pairs[pairIdx].Val, pairs[pairIdx].element1.y, pairs[pairIdx].element1.x, pairs[pairIdx].element2.y,
+                       pairs[pairIdx].element2.x);
             }
         }
         printf("\n");
     }
-
+    
     /** **/
     void IncCellsSolved()
     {
@@ -1203,19 +1165,19 @@ private:
             }
         }
     }
-    void RemoveAllPosibilitiesExcept( uint8_t x, uint8_t y, char Exception )
+    void RemoveAllPosibilitiesExcept(uint8_t x, uint8_t y, char Exception)
     {
-        for(int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
+        for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
         {
-            if( this->Charset[chrIdx] != Exception)
+            if( this->Charset[chrIdx] != Exception )
             {
                 this->RemovePossibility(x, y, this->Charset[chrIdx]);
             }
         }
     }
-    void RemoveAllPosibilitiesExcept( uint8_t x, uint8_t y, char *Exceptions, uint8_t ExceptionsNo )
+    void RemoveAllPosibilitiesExcept(uint8_t x, uint8_t y, char *Exceptions, uint8_t ExceptionsNo)
     {
-        for(int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
+        for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
         {
             bool IsOnExceptionList = false;
             char currChr = this->Charset[chrIdx];
@@ -1391,7 +1353,7 @@ private:
         {
             for( int x = 0; x < this->Size; x++ )
             {
-                if( ExcludeSolved == true &&  this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL) /* Exclude already solved if specified */
+                if( ExcludeSolved == true && this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL ) /* Exclude already solved if specified */
                 {
                     continue;
                 }
@@ -1415,7 +1377,7 @@ private:
         {
             for( int x = 0; x < this->Size; x++ )
             {
-                if( ExcludeSolved == true &&  this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL) /* Exclude already solved if specified */
+                if( ExcludeSolved == true && this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL ) /* Exclude already solved if specified */
                 {
                     continue;
                 }
@@ -1429,10 +1391,10 @@ private:
         }
         return ElementsIndex;
     }
-    bool HaveSameSolutions( cell_extended_t *Cell1, cell_extended_t *Cell2)
+    bool HaveSameSolutions(cell_extended_t *Cell1, cell_extended_t *Cell2)
     {
         bool Result = true;
-        if(Cell1->GetPossibleSolutionsNumber() != Cell2->GetPossibleSolutionsNumber())
+        if( Cell1->GetPossibleSolutionsNumber() != Cell2->GetPossibleSolutionsNumber() )
         {
             Result = false;
         }
@@ -1440,7 +1402,7 @@ private:
         {
             for( int solutionsCell1 = 0; solutionsCell1 < this->Size; solutionsCell1++ )
             {
-                if( !this->IsInPossibleSolutionsList( Cell2->Coord.x, Cell2->Coord.y, Cell1->PossibleSolutions[solutionsCell1].Val ) )
+                if( !this->IsInPossibleSolutionsList(Cell2->Coord.x, Cell2->Coord.y, Cell1->PossibleSolutions[solutionsCell1].Val) )
                 {
                     Result = false;
                     break;
@@ -1634,6 +1596,68 @@ private:
         }
         return PairsFound;
     }
+    uint8_t GetApparitionsOnBlock(uint8_t GroupId, char Solution, cell_extended_t *ApparitionsArray = nullptr)
+    {
+        uint8_t Ret = 0;
+        
+        /* Get all cells within block */
+        for( int y = 0; y < this->Size; y++ )
+        {
+            for( int x = 0; x < this->Size; x++ )
+            {
+                if( this->CellsMatrix[y][x].BlockNo == GroupId )
+                {
+                    
+                    if( this->CellsMatrix[y][x].ContainSolution(Solution) )
+                    {
+                        Ret++;
+                        if( ApparitionsArray != nullptr )
+                        {
+                            ApparitionsArray[Ret] = this->CellsMatrix[y][x];
+                        }
+                    }
+                }
+            }
+        }
+        return Ret;
+    }
+    uint8_t GetApparitionsOnY(uint8_t X, char Solution, cell_extended_t *ApparitionsArray = nullptr)
+    {
+        uint8_t Ret = 0;
+        
+        /* Get all cells within block */
+        for( int y = 0; y < this->Size; y++ )
+        {
+            if( this->CellsMatrix[y][X].ContainSolution(Solution) )
+            {
+                Ret++;
+                if( ApparitionsArray != nullptr )
+                {
+                    ApparitionsArray[Ret] = this->CellsMatrix[y][X];
+                }
+            }
+        }
+        return Ret;
+    }
+    uint8_t GetApparitionsOnX(uint8_t Y, char Solution, cell_extended_t *ApparitionsArray = nullptr)
+    {
+        uint8_t Ret = 0;
+        
+        /* Get all cells within block */
+        for( int x = 0; x < this->Size; x++ )
+        {
+            if( this->CellsMatrix[Y][x].ContainSolution(Solution) )
+            {
+                Ret++;
+                if( ApparitionsArray != nullptr )
+                {
+                    ApparitionsArray[Ret] = this->CellsMatrix[Y][x];
+                }
+            }
+        }
+        return Ret;
+    }
+    
 };
 
 #endif // _SUDOKUBOARD_H_
