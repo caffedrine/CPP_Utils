@@ -93,11 +93,14 @@ class SudokuBoard
         uint8_t GetPossibleSolutionsNumber()
         {
             uint8_t Result = 0;
-            for( uint8_t solIdx = 0; solIdx < SUDOKU_MAX_SIZE; solIdx++ )
+            if( val == UNSOLVED_SYMBOL )
             {
-                if( PossibleSolutions[solIdx].Val == 0 )
-                    break;
-                Result++;
+                for( uint8_t solIdx = 0; solIdx < SUDOKU_MAX_SIZE; solIdx++ )
+                {
+                    if( PossibleSolutions[solIdx].Val == 0 )
+                        break;
+                    Result++;
+                }
             }
             
             return Result;
@@ -105,15 +108,18 @@ class SudokuBoard
         bool ContainSolution(char Solution)
         {
             bool Result = false;
-            for( int solIdx = 0; solIdx < SUDOKU_MAX_SIZE; solIdx++ )
+            if( val == UNSOLVED_SYMBOL )
             {
-                if( PossibleSolutions[solIdx].Val == 0 )
-                    break;
-                
-                if( PossibleSolutions[solIdx].Val == Solution )
+                for( int solIdx = 0; solIdx < SUDOKU_MAX_SIZE; solIdx++ )
                 {
-                    Result = true;
-                    break;
+                    if( PossibleSolutions[solIdx].Val == 0 )
+                        break;
+        
+                    if( PossibleSolutions[solIdx].Val == Solution )
+                    {
+                        Result = true;
+                        break;
+                    }
                 }
             }
             return Result;
@@ -837,13 +843,13 @@ private:
         {
             /* Keep only keep only candidates which appear twice */
             int PossibilityPairsNo = 0;
-            possibility_pair_t PossibilityPairs[SUDOKU_MAX_SIZE];
+            possibility_pair_t PossibilityPairs[SUDOKU_MAX_SIZE] = {0};
             for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
             {
                 char CurrentChar = this->Charset[chrIdx];
-                cell_extended_t CellsFound[SUDOKU_MAX_SIZE];
+                cell_extended_t CellsFound[SUDOKU_MAX_SIZE] = {0};
             
-                if( this->GetApparitionsOnY(y, CurrentChar, CellsFound) == 2)
+                if( this->GetApparitionsOnX(y, CurrentChar, CellsFound) == 2)
                 {
                     possibility_pair_t pair;
                     pair.Cell1 = CellsFound[0];
@@ -868,7 +874,7 @@ private:
                         ExceptionsList[1] = pair2.CommonSolution;
                     
                         this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
-                        this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
+                        this->RemoveAllPosibilitiesExcept(pair1.Cell2.Coord.x, pair1.Cell2.Coord.y, ExceptionsList, 2);
                     }
                 }
             }
@@ -879,13 +885,13 @@ private:
         {
             /* Keep only keep only candidates which appear twice */
             int PossibilityPairsNo = 0;
-            possibility_pair_t PossibilityPairs[SUDOKU_MAX_SIZE];
+            possibility_pair_t PossibilityPairs[SUDOKU_MAX_SIZE] = {0};
             for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
             {
                 char CurrentChar = this->Charset[chrIdx];
-                cell_extended_t CellsFound[SUDOKU_MAX_SIZE];
+                cell_extended_t CellsFound[SUDOKU_MAX_SIZE] = {0};
             
-                if( this->GetApparitionsOnX(x, CurrentChar, CellsFound) == 2)
+                if( this->GetApparitionsOnY(x, CurrentChar, CellsFound) == 2)
                 {
                     possibility_pair_t pair;
                     pair.Cell1 = CellsFound[0];
@@ -910,7 +916,7 @@ private:
                         ExceptionsList[1] = pair2.CommonSolution;
                     
                         this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
-                        this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
+                        this->RemoveAllPosibilitiesExcept(pair1.Cell2.Coord.x, pair1.Cell2.Coord.y, ExceptionsList, 2);
                     }
                 }
             }
@@ -921,11 +927,17 @@ private:
         {
             /* Keep only keep only candidates which appear twice */
             int PossibilityPairsNo = 0;
-            possibility_pair_t PossibilityPairs[SUDOKU_MAX_SIZE];
+            possibility_pair_t PossibilityPairs[SUDOKU_MAX_SIZE] = {0};
             for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
             {
+                
                 char CurrentChar = this->Charset[chrIdx];
-                cell_extended_t CellsFound[SUDOKU_MAX_SIZE];
+                cell_extended_t CellsFound[SUDOKU_MAX_SIZE] = {0};
+    
+                if( CurrentBlock == 1 &&  CurrentChar == '5')
+                {
+                    int dummy = 0;
+                }
                 
                 if( this->GetApparitionsOnBlock(CurrentBlock, CurrentChar, CellsFound) == 2)
                 {
@@ -937,7 +949,7 @@ private:
                 }
             }
             
-            /* Check whether we have solutions overlaping */
+            /* Check whether we have solutions overlapping */
             for(int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++)
             {
                 possibility_pair_t pair1 = PossibilityPairs[pairIdx];
@@ -952,7 +964,7 @@ private:
                         ExceptionsList[1] = pair2.CommonSolution;
             
                         this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
-                        this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
+                        this->RemoveAllPosibilitiesExcept(pair1.Cell2.Coord.x, pair1.Cell2.Coord.y, ExceptionsList, 2);
                     }
                 }
             }
@@ -1608,9 +1620,8 @@ private:
         {
             for( int x = 0; x < this->Size; x++ )
             {
-                if( this->CellsMatrix[y][x].BlockNo == GroupId )
+                if( this->CellsMatrix[y][x].BlockNo == GroupId  &&  this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL)
                 {
-                    
                     if( this->CellsMatrix[y][x].ContainSolution(Solution) )
                     {
                         if( ApparitionsArray != nullptr )
@@ -1628,10 +1639,10 @@ private:
     {
         uint8_t Ret = 0;
         
-        /* Get all cells within block */
+        /* Get all cells within Y */
         for( int y = 0; y < this->Size; y++ )
         {
-            if( this->CellsMatrix[y][X].ContainSolution(Solution) )
+            if( this->CellsMatrix[y][X].val == UNSOLVED_SYMBOL && this->CellsMatrix[y][X].ContainSolution(Solution) )
             {
                 if( ApparitionsArray != nullptr )
                 {
@@ -1646,10 +1657,10 @@ private:
     {
         uint8_t Ret = 0;
         
-        /* Get all cells within block */
+        /* Get all cells within X */
         for( int x = 0; x < this->Size; x++ )
         {
-            if( this->CellsMatrix[Y][x].ContainSolution(Solution) )
+            if( this->CellsMatrix[Y][x].val == UNSOLVED_SYMBOL && this->CellsMatrix[Y][x].ContainSolution(Solution) )
             {
                 if( ApparitionsArray != nullptr )
                 {
