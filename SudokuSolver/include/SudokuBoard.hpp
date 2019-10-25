@@ -114,7 +114,7 @@ class SudokuBoard
                 {
                     if( PossibleSolutions[solIdx].Val == 0 )
                         break;
-        
+                    
                     if( PossibleSolutions[solIdx].Val == Solution )
                     {
                         Result = true;
@@ -124,7 +124,41 @@ class SudokuBoard
             }
             return Result;
         }
+        bool ContainSolutions(char *Solutions, uint8_t SolutionsNumber)
+        {
+            bool Result = false;
+            if( val == UNSOLVED_SYMBOL )
+            {
+                for( int solIdx = 0; solIdx < SolutionsNumber; solIdx++ )
+                {
+                    if( !ContainSolution(Solutions[solIdx]) )
+                    {
+                        Result = false;
+                        break;
+                    }
+                }
+            }
+            return Result;
+        }
+        uint8_t GetSolutions(char *Solutions)
+        {
+            uint8_t SolutionsNo = 0;
+            if( val != UNSOLVED_SYMBOL )
+            {
+                for( int solIdx = 0; solIdx < SUDOKU_MAX_SIZE; solIdx++ )
+                {
+                    if( PossibleSolutions[solIdx].Val == 0 )
+                        break;
+                    
+                    Solutions[SolutionsNo++] = PossibleSolutions[solIdx].Val;
+                }
+            }
+            return SolutionsNo;
+        }
+        bool ContainExactSolutions(char *Solutions)
+        {
         
+        }
     } cell_extended_t;
     
     typedef struct
@@ -283,7 +317,7 @@ public:
             
             Algo_HiddenSingles();
             if( this->IsSolved() ) break;
-
+            
             Algo_NakedSingles();
             if( this->IsSolved() ) break;
             
@@ -304,6 +338,10 @@ public:
         {
             printf("Cells solved: %d. Can't solve from this point...\n\n", this->CellsSolved);
             Print_Info();
+        }
+        else
+        {
+            printf("SUCCESS! Puzzle solved!\n");
         }
     } /* Solve() */
 
@@ -347,11 +385,12 @@ private:
             
             /** Confirmed */
             Algo_LockedCandidates_Type1_Pointing();
-            Algo_NakedPairs();
+//            Algo_NakedPairs();
             
             /** Unconfirmed */
-            Algo_LockedCandidates_Type2_Claiming();
-            Algo_HiddenPairs();
+//            Algo_LockedCandidates_Type2_Claiming();
+//            Algo_HiddenPairs();
+            Algo_NakedTriplets();
         }
         
         /* To make sure next time will try to update as well */
@@ -368,7 +407,7 @@ private:
             for( int x = 0; x < this->Size; x++ )
             {
                 /* Only loop through unknown symbols */
-                if( this->GetAllPossibleSolutions(x, y) == 1 )
+                if( this->CellsMatrix[y][x].GetPossibleSolutionsNumber() == 1 )
                 {
                     /* Write solution to corresponding cell */
                     this->CellsMatrix[y][x].val = this->GetNthSolution(x, y);
@@ -457,26 +496,6 @@ private:
          * If there is a cell in a block with only one possibility then that is the solution.
          */
         
-        
-        /** Blocks */
-        for( int blockId = 0; blockId < this->Size; blockId++ )
-        {
-            coord_t BlockElements[SUDOKU_MAX_SIZE];
-            for( int elementIdx = 0; elementIdx < this->GetBlockElements(blockId, BlockElements); elementIdx++ )
-            {
-                coord_t CurrentCell = BlockElements[elementIdx];
-                if( GetAllPossibleSolutions(CurrentCell.x, CurrentCell.y) == 1 )
-                {
-                    this->CellsMatrix[CurrentCell.y][CurrentCell.x].val = this->CellsMatrix[CurrentCell.y][CurrentCell.x].PossibleSolutions[0].Val;
-                    this->IncCellsSolved();
-                }
-            }
-        }
-        
-        /* Based on this method:
- * https://www.youtube.com/watch?v=ld0hChtBLno&t=592s
- * */
-        
         /** Lines */
         for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
         {
@@ -530,6 +549,22 @@ private:
                 }
             }/*y*/
         }/*chrIdx */
+    
+        /** Blocks */
+        for( int blockId = 0; blockId < this->Size; blockId++ )
+        {
+            coord_t BlockElements[SUDOKU_MAX_SIZE];
+            for( int elementIdx = 0; elementIdx < this->GetBlockElements(blockId, BlockElements); elementIdx++ )
+            {
+                coord_t CurrentCell = BlockElements[elementIdx];
+                if( GetAllPossibleSolutions(CurrentCell.x, CurrentCell.y) == 1 )
+                {
+                    this->CellsMatrix[CurrentCell.y][CurrentCell.x].val = this->CellsMatrix[CurrentCell.y][CurrentCell.x].PossibleSolutions[0].Val;
+                    this->IncCellsSolved();
+                }
+            }
+        }
+        
 
 //            printf("\tUnique solution: '%c'\n", Unique);
 //            printf("\tAparitions: \n");
@@ -761,75 +796,136 @@ private:
     void Algo_NakedPairs()
     {
         /**
-         * https://www.learn-sudoku.com/naked-pairs.html
+         * http://hodoku.sourceforge.net/en/tech_naked.php
          */
-        for( int BlockIdx = 0; BlockIdx < this->Size; BlockIdx++ )
+        
+        /** Lines */
+        for( int y = 0; y < this->Size; y++ )
         {
-            uint8_t ElementsWithTwoSmallSolutionsNo = 0;
-            coord_t ElementsWithTwoSmallSolutions[SUDOKU_MAX_SIZE];
-            
-            /* Fetch all elements that have maximum two solutions possible */
-            coord_t BlockElements[SUDOKU_MAX_SIZE];
-            for( int BlockElementIdx = 0; BlockElementIdx < this->GetBlockElements(BlockIdx, BlockElements); BlockElementIdx++ )
+            /* Keep only keep only which have 2 possibilities */
+            int CellsWithTwoSolutionsNo = 0;
+            cell_extended_t CellsWithTwoSolutions[SUDOKU_MAX_SIZE] = {0};
+            for( int x = 0; x < this->Size; x++ )
             {
-                cell_extended_t &CurrentCell = this->CellsMatrix[BlockElements[BlockElementIdx].y][BlockElements[BlockElementIdx].x];
-                /* Keep only cells with two solutions and which are not solved */
-                if( GetAllPossibleSolutions(CurrentCell.Coord.x, CurrentCell.Coord.y) != 2 || CurrentCell.val != UNSOLVED_SYMBOL )
-                    continue;
-                
-                ElementsWithTwoSmallSolutions[ElementsWithTwoSmallSolutionsNo++] = CurrentCell.Coord;
+                if( this->CellsMatrix[y][x].GetPossibleSolutionsNumber() == 2 )
+                {
+                    CellsWithTwoSolutions[CellsWithTwoSolutionsNo++] = this->CellsMatrix[y][x];
+                }
             }
             
-            
-            /* Store naked pairs found */
-            uint8_t NakedPairsNo = 0;
-            naked_pair_t NakedPairs[SUDOKU_MAX_SIZE / 2 + 1] = {0};
-            
-            /* Check whether there are naked pairs */
-            for( int elementIdx = 0; elementIdx < ElementsWithTwoSmallSolutionsNo; elementIdx++ )
+            /* Check whether we have solutions overlapping */
+            for( int cell1Idx = 0; cell1Idx < CellsWithTwoSolutionsNo; cell1Idx++ )
             {
-                for( int elementIdx2 = elementIdx + 1; elementIdx2 < ElementsWithTwoSmallSolutionsNo; elementIdx2++ )
+                cell_extended_t cell1 = CellsWithTwoSolutions[cell1Idx];
+                for( int cell2Idx = cell1Idx + 1; cell2Idx < CellsWithTwoSolutionsNo; cell2Idx++ )
                 {
-                    coord_t element1, element2;
-                    element1 = ElementsWithTwoSmallSolutions[elementIdx];
-                    element2 = ElementsWithTwoSmallSolutions[elementIdx2];
+                    cell_extended_t cell2 = CellsWithTwoSolutions[cell2Idx];
                     
-                    if( this->CellsMatrix[element1.y][element1.x].PossibleSolutions[0].Val == this->CellsMatrix[element2.y][element2.x].PossibleSolutions[0].Val
-                        && this->CellsMatrix[element1.y][element1.x].PossibleSolutions[1].Val ==
-                           this->CellsMatrix[element2.y][element2.x].PossibleSolutions[1].Val )
+                    if( HaveSameSolutions(&cell1, &cell2) )
                     {
-                        naked_pair_t Pair;
-                        Pair.element1 = element1;
-                        Pair.element2 = element2;
-                        Pair.Val1 = this->CellsMatrix[element1.y][element1.x].PossibleSolutions[0].Val;
-                        Pair.Val2 = this->CellsMatrix[element1.y][element1.x].PossibleSolutions[1].Val;
-                        
-                        NakedPairs[NakedPairsNo++] = Pair;
+                        /* Remove all possibilities os cell1.val and cell2.val from the rest of lines */
+                        for( int x = 0; x < this->Size; x++ )
+                        {
+                            if( (this->CellsMatrix[y][x].Coord == cell1.Coord) || (this->CellsMatrix[y][x].Coord == cell2.Coord) ) /* Ignore cell1 and cell2 */
+                            {
+                                continue;
+                            }
+                            char exceptions[2];
+                            exceptions[0] = cell1.PossibleSolutions[0].Val;
+                            exceptions[1] = cell1.PossibleSolutions[1].Val;
+                            this->RemoveAllPosibilitiesExcept(x, y, exceptions, 2);
+                        }
                     }
                 }
             }
-            
-            /* In case there were naked pairs, remove update possibilities table */
-            for( int NakedPairIdx = 0; NakedPairIdx < NakedPairsNo; NakedPairIdx++ )
+        }/* Lines */
+        
+        /** Columns */
+        for( int x = 0; x < this->Size; x++ )
+        {
+            /* Keep only keep only which have 2 possibilities */
+            int CellsWithTwoSolutionsNo = 0;
+            cell_extended_t CellsWithTwoSolutions[SUDOKU_MAX_SIZE] = {0};
+            for( int y = 0; y < this->Size; y++ )
             {
-                naked_pair_t CurrentPair = NakedPairs[NakedPairIdx];
-                
-                for( int BlockElementIdx = 0; BlockElementIdx < this->GetBlockElements(BlockIdx, BlockElements); BlockElementIdx++ )
+                if( this->CellsMatrix[y][x].GetPossibleSolutionsNumber() == 2 )
                 {
-                    cell_extended_t &CurrentCell = this->CellsMatrix[BlockElements[BlockElementIdx].y][BlockElements[BlockElementIdx].x];
-                    /* Ignore cells alread solved */
-                    if( (CurrentCell.val != UNSOLVED_SYMBOL) ) continue;
-                    
-                    /* Keep only cells with two solutions and are different compared to pair cells already found naked*/
-                    if( ((CurrentCell.Coord.x == CurrentPair.element1.x) && (CurrentCell.Coord.y == CurrentPair.element1.y)) ||
-                        ((CurrentCell.Coord.x == CurrentPair.element2.x) && (CurrentCell.Coord.y == CurrentPair.element2.y)) )
-                        continue;
-                    
-                    this->RemovePossibility(CurrentCell.Coord.x, CurrentCell.Coord.y, CurrentPair.Val1);
-                    this->RemovePossibility(CurrentCell.Coord.x, CurrentCell.Coord.y, CurrentPair.Val2);
+                    CellsWithTwoSolutions[CellsWithTwoSolutionsNo++] = this->CellsMatrix[y][x];
                 }
             }
-        }
+            
+            /* Check whether we have solutions overlapping */
+            for( int cell1Idx = 0; cell1Idx < CellsWithTwoSolutionsNo; cell1Idx++ )
+            {
+                cell_extended_t cell1 = CellsWithTwoSolutions[cell1Idx];
+                for( int cell2Idx = cell1Idx + 1; cell2Idx < CellsWithTwoSolutionsNo; cell2Idx++ )
+                {
+                    cell_extended_t cell2 = CellsWithTwoSolutions[cell2Idx];
+                    
+                    if( HaveSameSolutions(&cell1, &cell2) )
+                    {
+                        /* Remove all possibilities except cell1.val and cell2.val from the rest of lines */
+                        for( int y = 0; y < this->Size; y++ )
+                        {
+                            if( (this->CellsMatrix[y][x].Coord == cell1.Coord) || (this->CellsMatrix[y][x].Coord == cell2.Coord) ) /* Ignore cell1 and cell2 */
+                            {
+                                continue;
+                            }
+                            char exceptions[2];
+                            exceptions[0] = cell1.PossibleSolutions[0].Val;
+                            exceptions[1] = cell1.PossibleSolutions[1].Val;
+                            this->RemoveAllPosibilitiesExcept(x, y, exceptions, 2);
+                        }
+                    }
+                }
+            }
+        }/* Columns */
+        
+        /** Blocks */
+        for( int blockId = 0; blockId < this->Size; blockId++ )
+        {
+            /* Get all cells within block */
+            int BlockCellsNo = 0;
+            cell_extended_t BlockCells[SUDOKU_MAX_SIZE] = {0};
+            BlockCellsNo = this->GetBlockElements(blockId, BlockCells, true);
+            
+            /* Keep only keep only which have 2 possibilities */
+            int CellsWithTwoSolutionsNo = 0;
+            cell_extended_t CellsWithTwoSolutions[SUDOKU_MAX_SIZE] = {0};
+            for( int blockCellIdx = 0; blockCellIdx < BlockCellsNo; blockCellIdx++ )
+            {
+                if( BlockCells[blockCellIdx].GetPossibleSolutionsNumber() == 2 )
+                {
+                    CellsWithTwoSolutions[CellsWithTwoSolutionsNo++] = BlockCells[blockCellIdx];
+                }
+            }
+            
+            /* Check whether we have solutions overlapping */
+            for( int cell1Idx = 0; cell1Idx < CellsWithTwoSolutionsNo; cell1Idx++ )
+            {
+                cell_extended_t cell1 = CellsWithTwoSolutions[cell1Idx];
+                for( int cell2Idx = cell1Idx + 1; cell2Idx < CellsWithTwoSolutionsNo; cell2Idx++ )
+                {
+                    cell_extended_t cell2 = CellsWithTwoSolutions[cell2Idx];
+                    
+                    if( HaveSameSolutions(&cell1, &cell2) )
+                    {
+                        /* Remove all possibilities except cell1.val and cell2.val from the rest of lines */
+                        for( int blockCellIdx = 0; blockCellIdx < BlockCellsNo; blockCellIdx++ )
+                        {
+                            if( (BlockCells[blockCellIdx].Coord == cell1.Coord) || (BlockCells[blockCellIdx].Coord == cell2.Coord) )
+                            {
+                                continue;
+                            }
+                            char exceptions[2];
+                            exceptions[0] = cell1.PossibleSolutions[0].Val;
+                            exceptions[1] = cell1.PossibleSolutions[1].Val;
+                            this->RemoveAllPosibilitiesExcept(BlockCells[blockCellIdx].Coord.x, BlockCells[blockCellIdx].Coord.y, exceptions, 2);
+                        }
+                    }
+                }
+            }
+        }/* Blocks */
     }
     
     void Algo_HiddenPairs()
@@ -837,7 +933,7 @@ private:
         /**
          * http://hodoku.sourceforge.net/en/tech_hidden.php
          */
-
+        
         /** Lines */
         for( int y = 0; y < this->Size; y++ )
         {
@@ -848,8 +944,8 @@ private:
             {
                 char CurrentChar = this->Charset[chrIdx];
                 cell_extended_t CellsFound[SUDOKU_MAX_SIZE] = {0};
-            
-                if( this->GetApparitionsOnX(y, CurrentChar, CellsFound) == 2)
+                
+                if( this->GetApparitionsOnX(y, CurrentChar, CellsFound) == 2 )
                 {
                     possibility_pair_t pair;
                     pair.Cell1 = CellsFound[0];
@@ -858,28 +954,28 @@ private:
                     PossibilityPairs[PossibilityPairsNo++] = pair;
                 }
             }
-        
+            
             /* Check whether we have solutions overlaping */
-            for(int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++)
+            for( int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++ )
             {
                 possibility_pair_t pair1 = PossibilityPairs[pairIdx];
                 for( int pairIdx2 = pairIdx + 1; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
                 {
                     possibility_pair_t pair2 = PossibilityPairs[pairIdx2];
-                    if(  ((pair1.Cell1.Coord == pair2.Cell1.Coord) &&  (pair1.Cell2.Coord == pair2.Cell2.Coord) ) ||
-                            ((pair1.Cell1.Coord == pair2.Cell2.Coord) &&  (pair1.Cell2.Coord == pair2.Cell1.Coord) ) )
+                    if( ((pair1.Cell1.Coord == pair2.Cell1.Coord) && (pair1.Cell2.Coord == pair2.Cell2.Coord)) ||
+                        ((pair1.Cell1.Coord == pair2.Cell2.Coord) && (pair1.Cell2.Coord == pair2.Cell1.Coord)) )
                     {
                         char ExceptionsList[2];
                         ExceptionsList[0] = pair1.CommonSolution;
                         ExceptionsList[1] = pair2.CommonSolution;
-                    
+                        
                         this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
                         this->RemoveAllPosibilitiesExcept(pair1.Cell2.Coord.x, pair1.Cell2.Coord.y, ExceptionsList, 2);
                     }
                 }
             }
         }/* Lines */
-    
+        
         /** Columns */
         for( int x = 0; x < this->Size; x++ )
         {
@@ -890,8 +986,8 @@ private:
             {
                 char CurrentChar = this->Charset[chrIdx];
                 cell_extended_t CellsFound[SUDOKU_MAX_SIZE] = {0};
-            
-                if( this->GetApparitionsOnY(x, CurrentChar, CellsFound) == 2)
+                
+                if( this->GetApparitionsOnY(x, CurrentChar, CellsFound) == 2 )
                 {
                     possibility_pair_t pair;
                     pair.Cell1 = CellsFound[0];
@@ -900,21 +996,21 @@ private:
                     PossibilityPairs[PossibilityPairsNo++] = pair;
                 }
             }
-        
+            
             /* Check whether we have solutions overlaping */
-            for(int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++)
+            for( int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++ )
             {
                 possibility_pair_t pair1 = PossibilityPairs[pairIdx];
                 for( int pairIdx2 = pairIdx + 1; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
                 {
                     possibility_pair_t pair2 = PossibilityPairs[pairIdx2];
-                    if(  ((pair1.Cell1.Coord == pair2.Cell1.Coord) &&  (pair1.Cell2.Coord == pair2.Cell2.Coord) ) ||
-                         ((pair1.Cell1.Coord == pair2.Cell2.Coord) &&  (pair1.Cell2.Coord == pair2.Cell1.Coord) ) )
+                    if( ((pair1.Cell1.Coord == pair2.Cell1.Coord) && (pair1.Cell2.Coord == pair2.Cell2.Coord)) ||
+                        ((pair1.Cell1.Coord == pair2.Cell2.Coord) && (pair1.Cell2.Coord == pair2.Cell1.Coord)) )
                     {
                         char ExceptionsList[2];
                         ExceptionsList[0] = pair1.CommonSolution;
                         ExceptionsList[1] = pair2.CommonSolution;
-                    
+                        
                         this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
                         this->RemoveAllPosibilitiesExcept(pair1.Cell2.Coord.x, pair1.Cell2.Coord.y, ExceptionsList, 2);
                     }
@@ -933,13 +1029,13 @@ private:
                 
                 char CurrentChar = this->Charset[chrIdx];
                 cell_extended_t CellsFound[SUDOKU_MAX_SIZE] = {0};
-    
-                if( CurrentBlock == 1 &&  CurrentChar == '5')
+                
+                if( CurrentBlock == 1 && CurrentChar == '5' )
                 {
                     int dummy = 0;
                 }
                 
-                if( this->GetApparitionsOnBlock(CurrentBlock, CurrentChar, CellsFound) == 2)
+                if( this->GetApparitionsOnBlock(CurrentBlock, CurrentChar, CellsFound) == 2 )
                 {
                     possibility_pair_t pair;
                     pair.Cell1 = CellsFound[0];
@@ -950,19 +1046,19 @@ private:
             }
             
             /* Check whether we have solutions overlapping */
-            for(int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++)
+            for( int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++ )
             {
                 possibility_pair_t pair1 = PossibilityPairs[pairIdx];
                 for( int pairIdx2 = pairIdx + 1; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
                 {
                     possibility_pair_t pair2 = PossibilityPairs[pairIdx2];
-                    if(  ((pair1.Cell1.Coord == pair2.Cell1.Coord) &&  (pair1.Cell2.Coord == pair2.Cell2.Coord) ) ||
-                         ((pair1.Cell1.Coord == pair2.Cell2.Coord) &&  (pair1.Cell2.Coord == pair2.Cell1.Coord) ) )
+                    if( ((pair1.Cell1.Coord == pair2.Cell1.Coord) && (pair1.Cell2.Coord == pair2.Cell2.Coord)) ||
+                        ((pair1.Cell1.Coord == pair2.Cell2.Coord) && (pair1.Cell2.Coord == pair2.Cell1.Coord)) )
                     {
                         char ExceptionsList[2];
                         ExceptionsList[0] = pair1.CommonSolution;
                         ExceptionsList[1] = pair2.CommonSolution;
-            
+                        
                         this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
                         this->RemoveAllPosibilitiesExcept(pair1.Cell2.Coord.x, pair1.Cell2.Coord.y, ExceptionsList, 2);
                     }
@@ -974,115 +1070,113 @@ private:
     void Algo_NakedTriplets()
     {
         /**
-         * https://www.learn-sudoku.com/naked-pairs.html
+         * http://hodoku.sourceforge.net/en/tech_naked.php
          */
-        for( int BlockIdx = 0; BlockIdx < this->Size; BlockIdx++ )
+        
+        
+        /** Blocks */
+        for( int blockId = 0; blockId < this->Size; blockId++ )
         {
-            uint8_t ElementsWithThreeSmallSolutionsNo = 0;
-            coord_t ElementsWithThreeSmallSolutions[SUDOKU_MAX_SIZE];
+            /* Get all cells within block */
+            int BlockCellsNo = 0;
+            cell_extended_t BlockCells[SUDOKU_MAX_SIZE] = {0};
+            BlockCellsNo = this->GetBlockElements(blockId, BlockCells, true);
             
-            /* Fetch all elements that have maximum two solutions possible */
-            coord_t BlockElements[SUDOKU_MAX_SIZE];
-            for( int BlockElementIdx = 0; BlockElementIdx < this->GetBlockElements(BlockIdx, BlockElements); BlockElementIdx++ )
+            /* Keep only keep only which have 3 possibilities */
+            int CellsWithThreeSolutionsNo = 0;
+            cell_extended_t CellsWithThreeSolutions[SUDOKU_MAX_SIZE] = {0};
+            for( int blockCellIdx = 0; blockCellIdx < BlockCellsNo; blockCellIdx++ )
             {
-                cell_extended_t &CurrentCell = this->CellsMatrix[BlockElements[BlockElementIdx].y][BlockElements[BlockElementIdx].x];
-                /* Keep only cells with two solutions and which are not solved */
-                if( GetAllPossibleSolutions(CurrentCell.Coord.x, CurrentCell.Coord.y) != 3 || CurrentCell.val != UNSOLVED_SYMBOL )
-                    continue;
-                
-                ElementsWithThreeSmallSolutions[ElementsWithThreeSmallSolutionsNo++] = CurrentCell.Coord;
+                if( BlockCells[blockCellIdx].GetPossibleSolutionsNumber() == 3 )
+                {
+                    CellsWithThreeSolutions[CellsWithThreeSolutionsNo++] = BlockCells[blockCellIdx];
+                }
             }
             
-            return;
-            
-            /* Store naked pairs found */
-            uint8_t NakedTripletsNo = 0;
-            naked_triplets_t NakedTriplets[SUDOKU_MAX_SIZE / 2 + 1] = {0};
-            
-            /* Check whether there are naked pairs */
-            for( int elementIdx = 0; elementIdx < ElementsWithThreeSmallSolutionsNo; elementIdx++ )
+            /* Keep only keep only which have 2 possibilities */
+            int CellsWithTwoSolutionsNo = 0;
+            cell_extended_t CellsWithTwoSolutions[SUDOKU_MAX_SIZE] = {0};
+            for( int blockCellIdx = 0; blockCellIdx < BlockCellsNo; blockCellIdx++ )
             {
-                for( int elementIdx2 = elementIdx + 1; elementIdx2 < ElementsWithThreeSmallSolutionsNo; elementIdx2++ )
+                if( BlockCells[blockCellIdx].GetPossibleSolutionsNumber() == 2 )
                 {
-                    coord_t element1, element2;
-                    element1 = ElementsWithThreeSmallSolutions[elementIdx];
-                    element2 = ElementsWithThreeSmallSolutions[elementIdx2];
-                    
-                    if( this->CellsMatrix[element1.y][element1.x].PossibleSolutions[0].Val == this->CellsMatrix[element2.y][element2.x].PossibleSolutions[0].Val
-                        && this->CellsMatrix[element1.y][element1.x].PossibleSolutions[1].Val ==
-                           this->CellsMatrix[element2.y][element2.x].PossibleSolutions[1].Val )
+                    CellsWithTwoSolutions[CellsWithTwoSolutionsNo++] = BlockCells[blockCellIdx];
+                }
+            }
+            
+            int CellsFilledNo = 0;
+            cell_extended_t CellsFilled[3] = {0};
+            
+            /* Check whether we have solutions overlapping */
+            for( int cell1Idx = 0; cell1Idx < CellsWithThreeSolutionsNo; cell1Idx++ )
+            {
+                CellsFilled[CellsFilledNo++] = CellsWithThreeSolutions[cell1Idx];
+                
+                /* Check if there are some other 3 solutions cells */
+                for( int cell2Idx = cell1Idx + 1; cell2Idx < CellsWithThreeSolutionsNo; cell2Idx++ )
+                {
+                    if( HaveSameSolutions(&CellsFilled[0], &CellsWithThreeSolutions[cell2Idx]) )
                     {
-                        naked_triplets_t Pair;
-                        Pair.element1 = element1;
-                        Pair.element2 = element2;
-                        Pair.Val1 = this->CellsMatrix[element1.y][element1.x].PossibleSolutions[0].Val;
-                        Pair.Val2 = this->CellsMatrix[element1.y][element1.x].PossibleSolutions[1].Val;
-                        
-                        NakedTriplets[NakedTripletsNo++] = Pair;
+                        CellsFilled[CellsFilledNo++] = CellsWithThreeSolutions[cell2Idx];
+                        break;
                     }
                 }
-            }
-            
-            /* In case there were naked triplets, remove update possibilities table */
-            for( int NakedPairIdx = 0; NakedPairIdx < NakedTripletsNo; NakedPairIdx++ )
-            {
-                naked_triplets_t CurrentPair = NakedTriplets[NakedPairIdx];
                 
-                for( int BlockElementIdx = 0; BlockElementIdx < this->GetBlockElements(BlockIdx, BlockElements); BlockElementIdx++ )
+                /* Was NOT there an element found? -> Reset index, next element will became first element */
+                if( CellsFilledNo <= 1 )
                 {
-                    cell_extended_t &CurrentCell = this->CellsMatrix[BlockElements[BlockElementIdx].y][BlockElements[BlockElementIdx].x];
-                    /* Ignore cells alread solved */
-                    if( (CurrentCell.val != UNSOLVED_SYMBOL) ) continue;
-                    
-                    /* Keep only cells with two solutions and are different compared to pair cells already found naked*/
-                    if( ((CurrentCell.Coord.x == CurrentPair.element1.x) && (CurrentCell.Coord.y == CurrentPair.element1.y)) ||
-                        ((CurrentCell.Coord.x == CurrentPair.element2.x) && (CurrentCell.Coord.y == CurrentPair.element2.y)) )
-                        continue;
-                    
-                    this->RemovePossibility(CurrentCell.Coord.x, CurrentCell.Coord.y, CurrentPair.Val1);
-                    this->RemovePossibility(CurrentCell.Coord.x, CurrentCell.Coord.y, CurrentPair.Val2);
+                    CellsFilledNo = 0;
                 }
             }
-        }
+            
+            /* If there are less than three cells found, check for cells with two solutions */
+//            if( CellsFilledNo < 3 && CellsFilledNo > 0 )
+//            {
+//                for( int cellIdx = 0; cellIdx < CellsWithTwoSolutionsNo; cellIdx++ )
+//                {
+//                    cell_extended_t currCell = CellsWithTwoSolutions[cellIdx];
+//                    char currCellSolutions[2] = {0};
+//                    currCellSolutions[0] = currCell.PossibleSolutions[0].Val;
+//                    currCellSolutions[1] = currCell.PossibleSolutions[1].Val;
+//
+//                    if( CellsFilled[0].ContainSolutions(currCellSolutions, 2) )
+//                    {
+//                        CellsFilled[CellsFilledNo++] = currCell;
+//                    }
+//
+//                    if( CellsFilledNo == 3 )
+//                        break;
+//                }
+//            }
+            
+            /* Remove solutions from other cells */
+            if( CellsFilledNo == 3 )
+            {
+                /* Remove all possibilities except cell1.val and cell2.val from the rest of lines */
+                for( int blockCellIdx = 0; blockCellIdx < BlockCellsNo; blockCellIdx++ )
+                {
+                    if( (BlockCells[blockCellIdx].Coord == CellsFilled[0].Coord) || (BlockCells[blockCellIdx].Coord == CellsFilled[1].Coord) || (BlockCells[blockCellIdx].Coord == CellsFilled[2].Coord) )
+                    {
+                        continue;
+                    }
+                    
+                    this->Print_Info();
+//                    TimeUtils::SleepMs(100);
+                    
+                    char exceptions[3];
+                    exceptions[0] = CellsFilled[0].PossibleSolutions[0].Val;
+                    exceptions[1] = CellsFilled[0].PossibleSolutions[1].Val;
+                    exceptions[2] = CellsFilled[0].PossibleSolutions[2].Val;
+                    this->RemoveAllPosibilitiesExcept(BlockCells[blockCellIdx].Coord.x, BlockCells[blockCellIdx].Coord.y, exceptions, 3);
+                }
+            }
+            
+        }/* Blocks */
     }
     
     void Algo_HiddenTriplets()
     {
-        /**
-         * https://www.youtube.com/watch?v=AwBdgHqUmMQ - 5:15
-         *
-         * https://www.conceptispuzzles.com/index.aspx?uri=puzzle/sudoku/techniquesif w
-         *
-         * Refference: https://www.learn-sudoku.com/hidden-singles.html
-         *
-         * Techniques: https://www.sudoklue.com/m4/
-         *  1. Naked single
-         *  2. Hidden Single
-         *  3. Naked Pair
-         *  4. Omission
-         *  5. Naked triplet
-         *  6. Hidden pair
-         *  7. Naked Quad
-         *  8. Hidden triplet
-         *  9. Hidden quad
-         *  10. BUG Type 1
-         *  11. X - wing
-         *  12. Swordfish
-         *  13. Uniq Rectangle 1
-         *  14. XY-Wing
-         *  15. XYZ Wing
-         *  16. BUG Type 2
-         *  17. Forcing Chain1
-         *  18. Forcing Chain2
-         *  19. Forcing Chain3
-         *
-         */
-        
-        /**
-         *
-         * Implemented here: Check every block. Is there is any symbol repeating only once then that must be a solution.
-         *
-         */
+    
     }
     
     void Print_Info()
@@ -1096,7 +1190,7 @@ private:
             {
                 possibility_t possibileSolutions[SUDOKU_MAX_SIZE];
                 uint8_t SolutionsNumber = this->GetAllPossibleSolutions(x, y, possibileSolutions);
-                if( SolutionsNumber > 0  && SolutionsNumber <= 3 )
+                if( SolutionsNumber > 0 )//&& SolutionsNumber <= 3 )
                 {
                     printf("[%d][%d] could have only %d solutions: ", y, x, SolutionsNumber);
                     for( int i = 0; i < SolutionsNumber; i++ )
@@ -1137,6 +1231,10 @@ private:
         
         /* Update visual board containing last solution */
         PrintBoard();
+        
+        /* Wait for board to be updated on screen */
+//        TimeUtils::SleepMs(100);
+    
     }
     bool IsSolved()
     {
@@ -1620,7 +1718,7 @@ private:
         {
             for( int x = 0; x < this->Size; x++ )
             {
-                if( this->CellsMatrix[y][x].BlockNo == GroupId  &&  this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL)
+                if( this->CellsMatrix[y][x].BlockNo == GroupId && this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL )
                 {
                     if( this->CellsMatrix[y][x].ContainSolution(Solution) )
                     {
