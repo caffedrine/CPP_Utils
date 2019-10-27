@@ -697,7 +697,7 @@ private:
                     /* When last column is reached, verify the results */
                     if( x == this->Size - 1 )
                     {
-                        if( OmissionPossible == true )
+                        if( OmissionPossible )
                         {
                             /* Remove the the other elements from the current cell as solution must be on this line */
                             coord_t BlockElements[SUDOKU_MAX_SIZE];
@@ -757,7 +757,7 @@ private:
                     /* When last line is reached, verify the results */
                     if( y == this->Size - 1 )
                     {
-                        if( OmissionPossible == true )
+                        if( OmissionPossible )
                         {
                             /* Remove the the other elements from the current cell as solution must be on this column */
                             coord_t BlockElements[SUDOKU_MAX_SIZE];
@@ -1073,8 +1073,23 @@ private:
          * http://hodoku.sourceforge.net/en/tech_naked.php
          */
         
-        
         /** Blocks */
+        
+//        this->CellsMatrix[0][0].PossibleSolutions[0].Val = '1';
+//        this->CellsMatrix[0][0].PossibleSolutions[1].Val = '2';
+//        this->CellsMatrix[0][0].PossibleSolutions[2].Val = '5';
+//        this->CellsMatrix[0][0].PossibleSolutions[3].Val = 0;
+//
+//        this->CellsMatrix[1][1].PossibleSolutions[0].Val = '1';
+//        this->CellsMatrix[1][1].PossibleSolutions[1].Val = '2';
+//        this->CellsMatrix[1][1].PossibleSolutions[2].Val = '5';
+//        this->CellsMatrix[1][1].PossibleSolutions[3].Val = 0;
+//
+//        this->CellsMatrix[1][2].PossibleSolutions[0].Val = '1';
+//        this->CellsMatrix[1][2].PossibleSolutions[1].Val = '2';
+//        this->CellsMatrix[1][2].PossibleSolutions[2].Val = '5';
+//        this->CellsMatrix[1][2].PossibleSolutions[3].Val = 0;
+        
         for( int blockId = 0; blockId < this->Size; blockId++ )
         {
             /* Get all cells within block */
@@ -1118,36 +1133,41 @@ private:
                     if( HaveSameSolutions(&CellsFilled[0], &CellsWithThreeSolutions[cell2Idx]) )
                     {
                         CellsFilled[CellsFilledNo++] = CellsWithThreeSolutions[cell2Idx];
-                        break;
                     }
+                    
+                    if( CellsFilledNo == 3 )
+                        break;
                 }
                 
-                /* Was NOT there an element found? -> Reset index, next element will became first element */
-                if( CellsFilledNo <= 1 )
+                if( CellsFilledNo == 1 )
                 {
                     CellsFilledNo = 0;
+                }
+                else if( CellsFilledNo == 3 )
+                {
+                    break;
                 }
             }
             
             /* If there are less than three cells found, check for cells with two solutions */
-//            if( CellsFilledNo < 3 && CellsFilledNo > 0 )
-//            {
-//                for( int cellIdx = 0; cellIdx < CellsWithTwoSolutionsNo; cellIdx++ )
-//                {
-//                    cell_extended_t currCell = CellsWithTwoSolutions[cellIdx];
-//                    char currCellSolutions[2] = {0};
-//                    currCellSolutions[0] = currCell.PossibleSolutions[0].Val;
-//                    currCellSolutions[1] = currCell.PossibleSolutions[1].Val;
-//
-//                    if( CellsFilled[0].ContainSolutions(currCellSolutions, 2) )
-//                    {
-//                        CellsFilled[CellsFilledNo++] = currCell;
-//                    }
-//
-//                    if( CellsFilledNo == 3 )
-//                        break;
-//                }
-//            }
+            if( CellsFilledNo > 0 && CellsFilledNo < 3)
+            {
+                for( int cellIdx = 0; cellIdx < CellsWithTwoSolutionsNo; cellIdx++ )
+                {
+                    cell_extended_t currCell = CellsWithTwoSolutions[cellIdx];
+                    char currCellSolutions[2] = {0};
+                    currCellSolutions[0] = currCell.PossibleSolutions[0].Val;
+                    currCellSolutions[1] = currCell.PossibleSolutions[1].Val;
+
+                    if( CellsFilled[0].ContainSolutions(currCellSolutions, 2) )
+                    {
+                        CellsFilled[CellsFilledNo++] = currCell;
+                    }
+
+                    if( CellsFilledNo == 3 )
+                        break;
+                }
+            }
             
             /* Remove solutions from other cells */
             if( CellsFilledNo == 3 )
@@ -1160,7 +1180,7 @@ private:
                         continue;
                     }
                     
-                    this->Print_Info();
+//                    this->Print_Info();
 //                    TimeUtils::SleepMs(100);
                     
                     char exceptions[3];
@@ -1515,6 +1535,11 @@ private:
         {
             for( int solutionsCell1 = 0; solutionsCell1 < this->Size; solutionsCell1++ )
             {
+                if(Cell1->PossibleSolutions[solutionsCell1].Val == 0)
+                {
+                    break;
+                }
+                
                 if( !this->IsInPossibleSolutionsList(Cell2->Coord.x, Cell2->Coord.y, Cell1->PossibleSolutions[solutionsCell1].Val) )
                 {
                     Result = false;
