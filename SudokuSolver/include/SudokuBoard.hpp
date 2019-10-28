@@ -86,7 +86,6 @@ class SudokuBoard
     {
         char val;
         uint8_t BlockNo;
-        uint8_t IsAvailable;
         possibility_t PossibleSolutions[SUDOKU_MAX_SIZE];
         coord_t Coord;
         
@@ -174,31 +173,6 @@ class SudokuBoard
         char CommonSolution;
     } possibility_pair_t;
     
-    typedef struct
-    {
-        coord_t element1;
-        coord_t element2;
-        char Val;
-    } small_pair_t;
-    
-    typedef struct
-    {
-        coord_t element1;
-        coord_t element2;
-        char Val1;
-        char Val2;
-    } naked_pair_t;
-    
-    typedef struct
-    {
-        coord_t element1;
-        coord_t element2;
-        coord_t element3;
-        char Val1;
-        char Val2;
-        char Val3;
-    } naked_triplets_t;
-
 public:
     SudokuBoard(uint8_t Size_, cell_base_t *Cells) : Size(Size_)
     {
@@ -573,39 +547,39 @@ private:
         for( int BlockId = 0; BlockId < this->Size; BlockId++ ) /* Loop through all blocks */
         {
             /* Matrix containing pairs of cells that are on the same line/row */
-            small_pair_t SmallPairsFound[SUDOKU_MAX_SIZE] = {{0, 0}, {0, 0}, 0};
+            possibility_pair_t SmallPairsFound[SUDOKU_MAX_SIZE] = {0};
             this->GetSmallPairs(BlockId, SmallPairsFound);
             
             if( PrintLogs )
                 for( int pairIdx = 0; pairIdx < this->Size; pairIdx++ )
                 {
-                    if( SmallPairsFound[pairIdx].Val == 0 ) break;
-                    printf("Block: %d, '%c' = [%d][%d] and [%d][%d]\n", BlockId, SmallPairsFound[pairIdx].Val, SmallPairsFound[pairIdx].element1.y,
-                           SmallPairsFound[pairIdx].element1.x, SmallPairsFound[pairIdx].element2.y, SmallPairsFound[pairIdx].element2.x);
+                    if( SmallPairsFound[pairIdx].CommonSolution == 0 ) break;
+                    printf("Block: %d, '%c' = [%d][%d] and [%d][%d]\n", BlockId, SmallPairsFound[pairIdx].CommonSolution, SmallPairsFound[pairIdx].Cell1.Coord.y,
+                           SmallPairsFound[pairIdx].Cell1.Coord.x, SmallPairsFound[pairIdx].Cell2.Coord.y, SmallPairsFound[pairIdx].Cell2.Coord.x);
                 }
             
             /* Propagate restrictions which come by the pairs */
             for( int pairIdx = 0; pairIdx < this->Size; pairIdx++ )
             {
-                small_pair_t currPair = SmallPairsFound[pairIdx];
-                if( currPair.Val == 0 ) break; /* Break the loop if no more pairs there */
+                possibility_pair_t currPair = SmallPairsFound[pairIdx];
+                if( currPair.CommonSolution == 0 ) break; /* Break the loop if no more pairs there */
                 
-                if( currPair.element1.x == currPair.element2.x ) /* Restrictions to be propagated over Y axis */
+                if( currPair.Cell1.Coord.x == currPair.Cell2.Coord.x ) /* Restrictions to be propagated over Y axis */
                 {
                     for( int y = 0; y < this->Size; y++ )
                     {
-                        cell_extended_t &cell = this->CellsMatrix[y][currPair.element1.x];
+                        cell_extended_t &cell = this->CellsMatrix[y][currPair.Cell1.Coord.x];
                         if( cell.BlockNo == BlockId ) continue;
-                        this->RemovePossibility(cell.Coord.x, cell.Coord.y, currPair.Val);
+                        this->RemovePossibility(cell.Coord.x, cell.Coord.y, currPair.CommonSolution);
                     }
                 }
-                else if( currPair.element1.y == currPair.element2.y ) /* Restrictions to be propagated over X axis */
+                else if( currPair.Cell1.Coord.y == currPair.Cell2.Coord.y ) /* Restrictions to be propagated over X axis */
                 {
                     for( int x = 0; x < this->Size; x++ )
                     {
-                        cell_extended_t &cell = this->CellsMatrix[currPair.element1.y][x];
+                        cell_extended_t &cell = this->CellsMatrix[currPair.Cell1.Coord.y][x];
                         if( cell.BlockNo == BlockId ) continue;
-                        this->RemovePossibility(cell.Coord.x, cell.Coord.y, currPair.Val);
+                        this->RemovePossibility(cell.Coord.x, cell.Coord.y, currPair.CommonSolution);
                     }
                 }
             }
@@ -1217,14 +1191,13 @@ private:
         /* Print pairs per block */
         for( int BlockId = 0; BlockId < this->Size; BlockId++ )
         {
-            small_pair_t pairs[SUDOKU_MAX_SIZE];
+            possibility_pair_t pairs[SUDOKU_MAX_SIZE];
             uint8_t pairsFound = this->GetSmallPairs(BlockId, pairs);
             
             printf("Block: %d have %d pairs:\n", BlockId, pairsFound);
             for( int pairIdx = 0; pairIdx < pairsFound; pairIdx++ )
             {
-                printf("\t'%c' = [%d][%d] and [%d][%d]\n", pairs[pairIdx].Val, pairs[pairIdx].element1.y, pairs[pairIdx].element1.x, pairs[pairIdx].element2.y,
-                       pairs[pairIdx].element2.x);
+                printf("\t'%c' = [%d][%d] and [%d][%d]\n", pairs[pairIdx].CommonSolution, pairs[pairIdx].Cell1.Coord.y, pairs[pairIdx].Cell1.Coord.x, pairs[pairIdx].Cell2.Coord.y, pairs[pairIdx].Cell2.Coord.x);
             }
         }
         printf("\n");
@@ -1539,62 +1512,6 @@ private:
         
         return Result;
     }
-    uint8_t GetAvailableCellsOnBlock(uint8_t BlockId)
-    {
-        uint8_t Result = 0;
-        for( int y = 0; y < this->Size; y++ )
-        {
-            for( int x = 0; x < this->Size; x++ )
-            {
-                if( this->CellsMatrix[y][x].BlockNo == BlockId )
-                {
-                    if( this->CellsMatrix[y][x].IsAvailable == 1 )
-                    {
-                        Result++;
-                    }
-                }
-            }
-        }
-        return Result;
-    }
-    uint8_t SetAvailableOnAllCells(uint8_t available)
-    {
-        for( int y = 0; y < this->Size; y++ )
-        {
-            for( int x = 0; x < this->Size; x++ )
-            {
-                if( this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL )
-                {
-                    this->CellsMatrix[y][x].IsAvailable = 0;
-                }
-                else
-                {
-                    this->CellsMatrix[y][x].IsAvailable = available;
-                }
-            }
-        }
-    }
-    coord_t GetCoordByVal(uint8_t BlockID, char Val)
-    {
-        coord_t Result;
-        
-        for( int y = 0; y < this->Size; y++ )
-        {
-            for( int x = 0; x < this->Size; x++ )
-            {
-                if( this->CellsMatrix[y][x].BlockNo == BlockID )
-                {
-                    if( this->CellsMatrix[y][x].val == Val )
-                    {
-                        Result.x = x;
-                        Result.y = y;
-                        return Result;
-                    }
-                }
-            }
-        }
-        throw Exception("GetCoordByVal", "Value not present in selected group!");
-    }
     void ClearPossibleSolutions(uint8_t X, uint8_t Y)
     {
         for( uint8_t idx = 0; idx < this->Size; idx++ )
@@ -1602,7 +1519,7 @@ private:
             this->CellsMatrix[Y][X].PossibleSolutions[idx].Val = 0;
         }
     }
-    uint8_t GetSmallPairs(uint8_t GroupId, small_pair_t *Pairs)
+    uint8_t GetSmallPairs(uint8_t GroupId, possibility_pair_t *Pairs)
     {
         uint8_t PairsFound = 0;
         
@@ -1648,12 +1565,12 @@ private:
                             
                             if( (possibleSolution1 == possibleSolution2) && ((x1 == x2) || (y1 == y2)) )
                             {
-                                small_pair_t potentialSmallPair;
-                                potentialSmallPair.Val = possibleSolution1;
-                                potentialSmallPair.element1.x = x1;
-                                potentialSmallPair.element1.y = y1;
-                                potentialSmallPair.element2.x = x2;
-                                potentialSmallPair.element2.y = y2;
+                                possibility_pair_t potentialSmallPair;
+                                potentialSmallPair.CommonSolution = possibleSolution1;
+                                potentialSmallPair.Cell1.Coord.x = x1;
+                                potentialSmallPair.Cell1.Coord.y = y1;
+                                potentialSmallPair.Cell2.Coord.x = x2;
+                                potentialSmallPair.Cell2.Coord.y = y2;
                                 
                                 bool ThirdElementOnDifferentLinColFound = false;
                                 
@@ -1702,7 +1619,7 @@ private:
                                     bool SolutionAlreadyFound = false;
                                     for( int sol = 0; sol < PairsFound; sol++ )
                                     {
-                                        if( Pairs[sol].Val == potentialSmallPair.Val )
+                                        if( Pairs[sol].CommonSolution == potentialSmallPair.CommonSolution )
                                         {
                                             SolutionAlreadyFound = true;
                                         }
