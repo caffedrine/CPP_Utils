@@ -101,7 +101,6 @@ class SudokuBoard
                     Result++;
                 }
             }
-            
             return Result;
         }
         bool ContainSolution(char Solution)
@@ -359,11 +358,11 @@ private:
             
             /** Confirmed */
             Algo_LockedCandidates_Type1_Pointing();
-//            Algo_NakedPairs();
+            Algo_NakedPairs();
             
             /** Unconfirmed */
             Algo_LockedCandidates_Type2_Claiming();
-//            Algo_HiddenPairs();
+            Algo_HiddenPairs();
 //            Algo_NakedTriplets();
         }
         
@@ -454,90 +453,25 @@ private:
     void Algo_NakedSingles()
     {
         /*
-         * https://www.learn-sudoku.com/lone-singles.html
-         *
-         * If there is a cell in a block with only one possibility then that is the solution.
+         * http://hodoku.sourceforge.net/en/tech_singles.php
+         * If there is a cell with only one possibility then that is the solution.
          */
         
-        /** Lines */
-        for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
+        for( int y = 0; y < this->Size; y++ )
         {
-            char CurrentChar = this->Charset[chrIdx];
-            for( int y = 0; y < this->Size; y++ )
+            for(int x = 0; x < this->Size; x++)
             {
-                uint8_t Appearances = 0;
-                for( int x = 0; x < this->Size; x++ )
+                if( this->CellsMatrix[y][x].GetSolutionsNumber() == 1 )
                 {
-                    if( IsInPossibleSolutionsList(x, y, CurrentChar) )
-                        Appearances++;
-                }/*x*/
-                if( Appearances == 1 ) /* 1 appearance = 1 solution */
-                {
-                    /* Go to the location of the single solution */
-                    for( int x = 0; x < this->Size; x++ )
-                    {
-                        if( IsInPossibleSolutionsList(x, y, CurrentChar) )
-                        {
-                            this->CellsMatrix[y][x].val = CurrentChar;
-                            this->IncCellsSolved();
-                        }
-                    }/*x*/
-                }
-            }/*y*/
-        }/*chrIdx */
-        
-        /** Columns */
-        for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
-        {
-            char CurrentChar = this->Charset[chrIdx];
-            for( int x = 0; x < this->Size; x++ )
-            {
-                uint8_t Appearances = 0;
-                for( int y = 0; y < this->Size; y++ )
-                {
-                    if( IsInPossibleSolutionsList(x, y, CurrentChar) )
-                        Appearances++;
-                }/*x*/
-                if( Appearances == 1 ) /* 1 appearance = 1 solution */
-                {
-                    /* Go to the location of the single solution */
-                    for( int y = 0; y < this->Size; y++ )
-                    {
-                        if( IsInPossibleSolutionsList(x, y, CurrentChar) )
-                        {
-                            this->CellsMatrix[y][x].val = CurrentChar;
-                            this->IncCellsSolved();
-                        }
-                    }/*x*/
-                }
-            }/*y*/
-        }/*chrIdx */
-    
-        /** Blocks */
-        for( int blockId = 0; blockId < this->Size; blockId++ )
-        {
-            coord_t BlockElements[SUDOKU_MAX_SIZE];
-            for( int elementIdx = 0; elementIdx < this->GetBlockElements(blockId, BlockElements); elementIdx++ )
-            {
-                coord_t CurrentCell = BlockElements[elementIdx];
-                if( GetAllPossibleSolutions(CurrentCell.x, CurrentCell.y) == 1 )
-                {
-                    this->CellsMatrix[CurrentCell.y][CurrentCell.x].val = this->CellsMatrix[CurrentCell.y][CurrentCell.x].PossibleSolutions[0].Val;
+                    /* Only one possibility = solution */
+                    this->CellsMatrix[y][x].val = this->CellsMatrix[y][x].PossibleSolutions[0].Val;
+                    
+                    /* Propagate the changes */
                     this->IncCellsSolved();
                 }
-            }
-        }
+            }/*x*/
+        }/*y*/
         
-
-//            printf("\tUnique solution: '%c'\n", Unique);
-//            printf("\tAparitions: \n");
-//            for(int i = 0; i < this->Size; i++)
-//            {
-//                if( Apparitions[i] > 0 )
-//                {
-//                    printf("\t\t'%c' = %d\n", this->Charset[i], Apparitions[i] );
-//                }
-//            }
     }
     
     void Algo_LockedCandidates_Type1_Pointing()
@@ -1210,6 +1144,8 @@ private:
         
         /* Update board possibilities every time a solution is being found */
         this->Algo_UpdatePossibilitiesTable();
+        
+        /* Update string representations of cells possibilities */
         
         /* Update visual board containing last solution */
         PrintBoard();
