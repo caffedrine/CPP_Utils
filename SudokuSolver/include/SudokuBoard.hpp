@@ -90,7 +90,7 @@ class SudokuBoard
         possibility_t PossibleSolutions[SUDOKU_MAX_SIZE];
         coord_t Coord;
         
-        uint8_t GetPossibleSolutionsNumber()
+        uint8_t GetSolutionsNumber()
         {
             uint8_t Result = 0;
             if( val == UNSOLVED_SYMBOL )
@@ -317,7 +317,7 @@ public:
             
             Algo_HiddenSingles();
             if( this->IsSolved() ) break;
-            
+
             Algo_NakedSingles();
             if( this->IsSolved() ) break;
             
@@ -388,9 +388,9 @@ private:
 //            Algo_NakedPairs();
             
             /** Unconfirmed */
-//            Algo_LockedCandidates_Type2_Claiming();
+            Algo_LockedCandidates_Type2_Claiming();
 //            Algo_HiddenPairs();
-            Algo_NakedTriplets();
+//            Algo_NakedTriplets();
         }
         
         /* To make sure next time will try to update as well */
@@ -407,10 +407,10 @@ private:
             for( int x = 0; x < this->Size; x++ )
             {
                 /* Only loop through unknown symbols */
-                if( this->CellsMatrix[y][x].GetPossibleSolutionsNumber() == 1 )
+                if( this->CellsMatrix[y][x].GetSolutionsNumber() == 1 )
                 {
                     /* Write solution to corresponding cell */
-                    this->CellsMatrix[y][x].val = this->GetNthSolution(x, y);
+                    this->CellsMatrix[y][x].val = this->CellsMatrix[y][x].PossibleSolutions[0].Val;
                     
                     /* Update status */
                     this->IncCellsSolved();
@@ -422,70 +422,59 @@ private:
     
     void Algo_HiddenSingles()
     {
-        /* Itterate through all symbols */
         for( int ChrIdx = 0; ChrIdx < this->Size; ChrIdx++ )
         {
             /* Current symbol */
             char CurrentTryChar = this->Charset[ChrIdx];
-            
-            /* Make all cells as valid and itterate thru' them and mark those which are invalid */
-            this->SetAvailableOnAllCells(0);
-            
-            /* Get all cells that can have CurrentTryChar as solution */
+    
+            /** Lines */
             for( int y = 0; y < this->Size; y++ )
             {
-                for( int x = 0; x < this->Size; x++ )
+                cell_extended_t CellsContainingSymbol[SUDOKU_MAX_SIZE] = {0};
+                uint8_t CellsContainingSymbolNo = this->GetApparitionsOnX(y, CurrentTryChar, CellsContainingSymbol);
+                if( CellsContainingSymbolNo == 1 ) /* If only one cell in this house contains this symbol, the solution must be this symbol */
                 {
-                    if( IsInPossibleSolutionsList(x, y, CurrentTryChar) )
-                    {
-                        this->CellsMatrix[y][x].IsAvailable = 1;
-                    }
+                    /* Write solution in it's corresponding cell */
+                    this->CellsMatrix[y][CellsContainingSymbol[0].Coord.x].val = CurrentTryChar;
+                    
+                    /* Notify the others about finding */
+                    this->IncCellsSolved();
                 }
             }
-            
-            /* Now loop through all block and check whether there is only one element available - that would be an solution */
-            for( int blockIdx = 0; blockIdx < this->Size; blockIdx++ )
+    
+            /** Columns */
+            for( int x = 0; x < this->Size; x++ )
             {
-                /* After all intersections there is only one cell remaining. If Current char is not contained by the block, then we have a solution */
-                if( GetAvailableCellsOnBlock(blockIdx) == 1 && !AlreadyOnBlock(blockIdx, CurrentTryChar) )
+                cell_extended_t CellsContainingSymbol[SUDOKU_MAX_SIZE] = {0};
+                uint8_t CellsContainingSymbolNo = this->GetApparitionsOnY(x, CurrentTryChar, CellsContainingSymbol);
+                if( CellsContainingSymbolNo == 1 ) /* If only one cell in this house contains this symbol, the solution must be this symbol */
                 {
-                    for( int y = 0; y < this->Size; y++ )
-                    {
-                        for( int x = 0; x < this->Size; x++ )
-                        {
-                            if( this->CellsMatrix[x][y].BlockNo == blockIdx )
-                            {
-                                if( this->CellsMatrix[x][y].IsAvailable == 1 )
-                                {
-                                    this->CellsMatrix[x][y].val = CurrentTryChar;
-                                    this->CellsMatrix[x][y].IsAvailable = 0;
-                                    this->IncCellsSolved();
-                                    int dummy = 0;
-                                }
-                            }
-                        }
-                    }
-                    break;
+                    /* Write solution in it's corresponding cell */
+                    this->CellsMatrix[CellsContainingSymbol[0].Coord.y][x].val = CurrentTryChar;
+            
+                    /* Notify the others about finding */
+                    this->IncCellsSolved();
                 }
             }
-
-
-//            /* Print debugging matrix */
-//            printf("Current character: '%c' - available pozitions\n", CurrentTryChar);
-//            for(int y = 0; y < this->Size; y++)
-//            {
-//                for( int x = 0; x < this->Size; x++)
-//                {
-//                    printf("%s%d " ANSI_COLOR_RESET, AsciiColors[CellsMatrix[y][x].BlockNo], this->CellsMatrix[y][x].IsAvailable);
-//                }
-//                printf("\n");
-//            }
-//            printf("\n");
-//            fflush(stdout);
             
+            /** Blocks */
+            for( int GroupId = 0; GroupId < this->Size; GroupId++ )
+            {
+                cell_extended_t GroupCellsContainingSymbol[SUDOKU_MAX_SIZE] = {0};
+                uint8_t GroupCellsContainingSymbolNo = 0;
+                GroupCellsContainingSymbolNo = this->GetApparitionsOnBlock(GroupId, CurrentTryChar, GroupCellsContainingSymbol);
+                if( GroupCellsContainingSymbolNo == 1 ) /* If only one cell in this house contains this symbol, the solution must be this symbol */
+                {
+                    /* Write solution in it's corresponding cell */
+                    this->CellsMatrix[GroupCellsContainingSymbol[0].Coord.y][GroupCellsContainingSymbol[0].Coord.x].val = CurrentTryChar;
         
+                    /* Notify the others about finding */
+                    this->IncCellsSolved();
+                }
+            }
+            
+            
         } /* For every char in charset */
-        int dummyBreak = 0;
     }
     
     void Algo_NakedSingles()
@@ -807,7 +796,7 @@ private:
             cell_extended_t CellsWithTwoSolutions[SUDOKU_MAX_SIZE] = {0};
             for( int x = 0; x < this->Size; x++ )
             {
-                if( this->CellsMatrix[y][x].GetPossibleSolutionsNumber() == 2 )
+                if( this->CellsMatrix[y][x].GetSolutionsNumber() == 2 )
                 {
                     CellsWithTwoSolutions[CellsWithTwoSolutionsNo++] = this->CellsMatrix[y][x];
                 }
@@ -848,7 +837,7 @@ private:
             cell_extended_t CellsWithTwoSolutions[SUDOKU_MAX_SIZE] = {0};
             for( int y = 0; y < this->Size; y++ )
             {
-                if( this->CellsMatrix[y][x].GetPossibleSolutionsNumber() == 2 )
+                if( this->CellsMatrix[y][x].GetSolutionsNumber() == 2 )
                 {
                     CellsWithTwoSolutions[CellsWithTwoSolutionsNo++] = this->CellsMatrix[y][x];
                 }
@@ -894,7 +883,7 @@ private:
             cell_extended_t CellsWithTwoSolutions[SUDOKU_MAX_SIZE] = {0};
             for( int blockCellIdx = 0; blockCellIdx < BlockCellsNo; blockCellIdx++ )
             {
-                if( BlockCells[blockCellIdx].GetPossibleSolutionsNumber() == 2 )
+                if( BlockCells[blockCellIdx].GetSolutionsNumber() == 2 )
                 {
                     CellsWithTwoSolutions[CellsWithTwoSolutionsNo++] = BlockCells[blockCellIdx];
                 }
@@ -1102,7 +1091,7 @@ private:
             cell_extended_t CellsWithThreeSolutions[SUDOKU_MAX_SIZE] = {0};
             for( int blockCellIdx = 0; blockCellIdx < BlockCellsNo; blockCellIdx++ )
             {
-                if( BlockCells[blockCellIdx].GetPossibleSolutionsNumber() == 3 )
+                if( BlockCells[blockCellIdx].GetSolutionsNumber() == 3 )
                 {
                     CellsWithThreeSolutions[CellsWithThreeSolutionsNo++] = BlockCells[blockCellIdx];
                 }
@@ -1113,7 +1102,7 @@ private:
             cell_extended_t CellsWithTwoSolutions[SUDOKU_MAX_SIZE] = {0};
             for( int blockCellIdx = 0; blockCellIdx < BlockCellsNo; blockCellIdx++ )
             {
-                if( BlockCells[blockCellIdx].GetPossibleSolutionsNumber() == 2 )
+                if( BlockCells[blockCellIdx].GetSolutionsNumber() == 2 )
                 {
                     CellsWithTwoSolutions[CellsWithTwoSolutionsNo++] = BlockCells[blockCellIdx];
                 }
@@ -1527,7 +1516,7 @@ private:
     bool HaveSameSolutions(cell_extended_t *Cell1, cell_extended_t *Cell2)
     {
         bool Result = true;
-        if( Cell1->GetPossibleSolutionsNumber() != Cell2->GetPossibleSolutionsNumber() )
+        if( Cell1->GetSolutionsNumber() != Cell2->GetSolutionsNumber() )
         {
             Result = false;
         }
