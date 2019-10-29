@@ -282,14 +282,14 @@ public:
             Algo_UpdatePossibilitiesTable();
             if( this->IsSolved() ) break;
             
-            Algo_FullHouse_LastDigit();
-            if( this->IsSolved() ) break;
+//            Algo_FullHouse_LastDigit();
+//            if( this->IsSolved() ) break;
             
             Algo_HiddenSingles();
             if( this->IsSolved() ) break;
             
-            Algo_NakedSingles();
-            if( this->IsSolved() ) break;
+//            Algo_NakedSingles();
+//            if( this->IsSolved() ) break;
             
             /* Update time elapsed */
             this->PrintTimeElapsed();
@@ -332,11 +332,6 @@ private:
     
     void Algo_UpdatePossibilitiesTable()
     {
-        /**
-         * http://hodoku.sourceforge.net/en/tech_intersections.php#lc12
-         *
-         */
-        
         /* Update all possibilities on all cells for the first time without cross check. Some of them will be removed after crosscheck. */
         for( int y = 0; y < this->Size; y++ )
         {
@@ -368,9 +363,6 @@ private:
         
         /* To make sure next time will try to update as well */
         PossibilityTableUpdateRequest = true;
-        
-        int dummy = 0;
-        
     }
     
     void Algo_FullHouse_LastDigit()
@@ -446,7 +438,7 @@ private:
                 }
             }
             
-        } /* For every char in charset */
+        } /*ChrIdx*/
     }
     
     void Algo_NakedSingles()
@@ -546,14 +538,7 @@ private:
     
     void Algo_LockedCandidates_Type2_Claiming()
     {
-        /**
-         * https://www.learn-sudoku.com/omission.html
-         *
-         */
-        
-        /* Based on this method:
-         * https://www.youtube.com/watch?v=ld0hChtBLno&t=592s
-         * */
+        /** http://hodoku.sourceforge.net/en/tech_intersections.php */
         
         /** Get each cell from each line */
         for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
@@ -829,137 +814,147 @@ private:
          * http://hodoku.sourceforge.net/en/tech_hidden.php
          */
         
-        /** Lines */
-        for( int y = 0; y < this->Size; y++ )
+        int PairsFound = 0, PreviousPairsFound = 0;
+        while(true)
         {
-            /* Keep only keep only candidates which appear twice */
-            int PossibilityPairsNo = 0;
-            possibility_pair_t PossibilityPairs[SUDOKU_MAX_SIZE] = {0};
-            for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
-            {
-                char CurrentChar = this->Charset[chrIdx];
-                cell_extended_t CellsFound[SUDOKU_MAX_SIZE] = {0};
-                
-                if( this->GetApparitionsOnX(y, CurrentChar, CellsFound) == 2 )
-                {
-                    possibility_pair_t pair;
-                    pair.Cell1 = CellsFound[0];
-                    pair.Cell2 = CellsFound[1];
-                    pair.CommonSolution = CurrentChar;
-                    PossibilityPairs[PossibilityPairsNo++] = pair;
-                }
-            }
+            PairsFound = 0;
             
-            /* Check whether we have solutions overlaping */
-            for( int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++ )
+            /** Lines */
+            for( int y = 0; y < this->Size; y++ )
             {
-                possibility_pair_t pair1 = PossibilityPairs[pairIdx];
-                for( int pairIdx2 = pairIdx + 1; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
+                /* Keep only keep only candidates which appear twice */
+                int PossibilityPairsNo = 0;
+                possibility_pair_t PossibilityPairs[SUDOKU_MAX_SIZE] = {0};
+                for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
                 {
-                    possibility_pair_t pair2 = PossibilityPairs[pairIdx2];
-                    if( ((pair1.Cell1.Coord == pair2.Cell1.Coord) && (pair1.Cell2.Coord == pair2.Cell2.Coord)) ||
-                        ((pair1.Cell1.Coord == pair2.Cell2.Coord) && (pair1.Cell2.Coord == pair2.Cell1.Coord)) )
+                    char CurrentChar = this->Charset[chrIdx];
+                    cell_extended_t CellsFound[SUDOKU_MAX_SIZE] = {0};
+            
+                    if( this->GetApparitionsOnX(y, CurrentChar, CellsFound) == 2 )
                     {
-                        char ExceptionsList[2];
-                        ExceptionsList[0] = pair1.CommonSolution;
-                        ExceptionsList[1] = pair2.CommonSolution;
-                        
-                        this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
-                        this->RemoveAllPosibilitiesExcept(pair1.Cell2.Coord.x, pair1.Cell2.Coord.y, ExceptionsList, 2);
+                        possibility_pair_t pair;
+                        pair.Cell1 = CellsFound[0];
+                        pair.Cell2 = CellsFound[1];
+                        pair.CommonSolution = CurrentChar;
+                        PossibilityPairs[PossibilityPairsNo++] = pair;
                     }
                 }
-            }
-        }/* Lines */
         
-        /** Columns */
-        for( int x = 0; x < this->Size; x++ )
-        {
-            /* Keep only keep only candidates which appear twice */
-            int PossibilityPairsNo = 0;
-            possibility_pair_t PossibilityPairs[SUDOKU_MAX_SIZE] = {0};
-            for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
-            {
-                char CurrentChar = this->Charset[chrIdx];
-                cell_extended_t CellsFound[SUDOKU_MAX_SIZE] = {0};
-                
-                if( this->GetApparitionsOnY(x, CurrentChar, CellsFound) == 2 )
+                /* Check whether we have solutions overlaping */
+                for( int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++ )
                 {
-                    possibility_pair_t pair;
-                    pair.Cell1 = CellsFound[0];
-                    pair.Cell2 = CellsFound[1];
-                    pair.CommonSolution = CurrentChar;
-                    PossibilityPairs[PossibilityPairsNo++] = pair;
-                }
-            }
-            
-            /* Check whether we have solutions overlaping */
-            for( int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++ )
-            {
-                possibility_pair_t pair1 = PossibilityPairs[pairIdx];
-                for( int pairIdx2 = pairIdx + 1; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
-                {
-                    possibility_pair_t pair2 = PossibilityPairs[pairIdx2];
-                    if( ((pair1.Cell1.Coord == pair2.Cell1.Coord) && (pair1.Cell2.Coord == pair2.Cell2.Coord)) ||
-                        ((pair1.Cell1.Coord == pair2.Cell2.Coord) && (pair1.Cell2.Coord == pair2.Cell1.Coord)) )
+                    possibility_pair_t pair1 = PossibilityPairs[pairIdx];
+                    for( int pairIdx2 = pairIdx + 1; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
                     {
-                        char ExceptionsList[2];
-                        ExceptionsList[0] = pair1.CommonSolution;
-                        ExceptionsList[1] = pair2.CommonSolution;
-                        
-                        this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
-                        this->RemoveAllPosibilitiesExcept(pair1.Cell2.Coord.x, pair1.Cell2.Coord.y, ExceptionsList, 2);
+                        possibility_pair_t pair2 = PossibilityPairs[pairIdx2];
+                        if( ((pair1.Cell1.Coord == pair2.Cell1.Coord) && (pair1.Cell2.Coord == pair2.Cell2.Coord)) ||
+                            ((pair1.Cell1.Coord == pair2.Cell2.Coord) && (pair1.Cell2.Coord == pair2.Cell1.Coord)) )
+                        {
+                            char ExceptionsList[2];
+                            ExceptionsList[0] = pair1.CommonSolution;
+                            ExceptionsList[1] = pair2.CommonSolution;
+                    
+                            this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
+                            this->RemoveAllPosibilitiesExcept(pair1.Cell2.Coord.x, pair1.Cell2.Coord.y, ExceptionsList, 2);
+                            PairsFound++;
+                        }
                     }
                 }
-            }
-        }/* Columns */
+            }/* Lines */
+    
+            /** Columns */
+            for( int x = 0; x < this->Size; x++ )
+            {
+                /* Keep only keep only candidates which appear twice */
+                int PossibilityPairsNo = 0;
+                possibility_pair_t PossibilityPairs[SUDOKU_MAX_SIZE] = {0};
+                for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
+                {
+                    char CurrentChar = this->Charset[chrIdx];
+                    cell_extended_t CellsFound[SUDOKU_MAX_SIZE] = {0};
+            
+                    if( this->GetApparitionsOnY(x, CurrentChar, CellsFound) == 2 )
+                    {
+                        possibility_pair_t pair;
+                        pair.Cell1 = CellsFound[0];
+                        pair.Cell2 = CellsFound[1];
+                        pair.CommonSolution = CurrentChar;
+                        PossibilityPairs[PossibilityPairsNo++] = pair;
+                    }
+                }
         
-        /** Blocks */
-        for( int CurrentBlock = 0; CurrentBlock < this->Size; CurrentBlock++ )
-        {
-            /* Keep only keep only candidates which appear twice */
-            int PossibilityPairsNo = 0;
-            possibility_pair_t PossibilityPairs[SUDOKU_MAX_SIZE] = {0};
-            for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
-            {
-                
-                char CurrentChar = this->Charset[chrIdx];
-                cell_extended_t CellsFound[SUDOKU_MAX_SIZE] = {0};
-                
-                if( CurrentBlock == 1 && CurrentChar == '5' )
+                /* Check whether we have solutions overlaping */
+                for( int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++ )
                 {
-                    int dummy = 0;
-                }
-                
-                if( this->GetApparitionsOnBlock(CurrentBlock, CurrentChar, CellsFound) == 2 )
-                {
-                    possibility_pair_t pair;
-                    pair.Cell1 = CellsFound[0];
-                    pair.Cell2 = CellsFound[1];
-                    pair.CommonSolution = CurrentChar;
-                    PossibilityPairs[PossibilityPairsNo++] = pair;
-                }
-            }
-            
-            /* Check whether we have solutions overlapping */
-            for( int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++ )
-            {
-                possibility_pair_t pair1 = PossibilityPairs[pairIdx];
-                for( int pairIdx2 = pairIdx + 1; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
-                {
-                    possibility_pair_t pair2 = PossibilityPairs[pairIdx2];
-                    if( ((pair1.Cell1.Coord == pair2.Cell1.Coord) && (pair1.Cell2.Coord == pair2.Cell2.Coord)) ||
-                        ((pair1.Cell1.Coord == pair2.Cell2.Coord) && (pair1.Cell2.Coord == pair2.Cell1.Coord)) )
+                    possibility_pair_t pair1 = PossibilityPairs[pairIdx];
+                    for( int pairIdx2 = pairIdx + 1; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
                     {
-                        char ExceptionsList[2];
-                        ExceptionsList[0] = pair1.CommonSolution;
-                        ExceptionsList[1] = pair2.CommonSolution;
-                        
-                        this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
-                        this->RemoveAllPosibilitiesExcept(pair1.Cell2.Coord.x, pair1.Cell2.Coord.y, ExceptionsList, 2);
+                        possibility_pair_t pair2 = PossibilityPairs[pairIdx2];
+                        if( ((pair1.Cell1.Coord == pair2.Cell1.Coord) && (pair1.Cell2.Coord == pair2.Cell2.Coord)) ||
+                            ((pair1.Cell1.Coord == pair2.Cell2.Coord) && (pair1.Cell2.Coord == pair2.Cell1.Coord)) )
+                        {
+                            char ExceptionsList[2];
+                            ExceptionsList[0] = pair1.CommonSolution;
+                            ExceptionsList[1] = pair2.CommonSolution;
+                    
+                            this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
+                            this->RemoveAllPosibilitiesExcept(pair1.Cell2.Coord.x, pair1.Cell2.Coord.y, ExceptionsList, 2);
+                            PairsFound++;
+                        }
                     }
                 }
-            }
-        }/*CurrentBlock*/
+            }/* Columns */
+    
+            /** Blocks */
+            for( int CurrentBlock = 0; CurrentBlock < this->Size; CurrentBlock++ )
+            {
+                /* Keep only keep only candidates which appear twice */
+                int PossibilityPairsNo = 0;
+                possibility_pair_t PossibilityPairs[SUDOKU_MAX_SIZE] = {0};
+                for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
+                {
+            
+                    char CurrentChar = this->Charset[chrIdx];
+                    cell_extended_t CellsFound[SUDOKU_MAX_SIZE] = {0};
+            
+                    if( this->GetApparitionsOnBlock(CurrentBlock, CurrentChar, CellsFound) == 2 )
+                    {
+                        possibility_pair_t pair;
+                        pair.Cell1 = CellsFound[0];
+                        pair.Cell2 = CellsFound[1];
+                        pair.CommonSolution = CurrentChar;
+                        PossibilityPairs[PossibilityPairsNo++] = pair;
+                    }
+                }
+        
+                /* Check whether we have solutions overlapping */
+                for( int pairIdx = 0; pairIdx < PossibilityPairsNo; pairIdx++ )
+                {
+                    possibility_pair_t pair1 = PossibilityPairs[pairIdx];
+                    for( int pairIdx2 = pairIdx + 1; pairIdx2 < PossibilityPairsNo; pairIdx2++ )
+                    {
+                        possibility_pair_t pair2 = PossibilityPairs[pairIdx2];
+                        if( ((pair1.Cell1.Coord == pair2.Cell1.Coord) && (pair1.Cell2.Coord == pair2.Cell2.Coord)) ||
+                            ((pair1.Cell1.Coord == pair2.Cell2.Coord) && (pair1.Cell2.Coord == pair2.Cell1.Coord)) )
+                        {
+                            char ExceptionsList[2];
+                            ExceptionsList[0] = pair1.CommonSolution;
+                            ExceptionsList[1] = pair2.CommonSolution;
+                    
+                            this->RemoveAllPosibilitiesExcept(pair1.Cell1.Coord.x, pair1.Cell1.Coord.y, ExceptionsList, 2);
+                            this->RemoveAllPosibilitiesExcept(pair1.Cell2.Coord.x, pair1.Cell2.Coord.y, ExceptionsList, 2);
+                            PairsFound++;
+                        }
+                    }
+                }
+            }/*CurrentBlock*/
+            
+            if( PairsFound == PreviousPairsFound )
+                break;
+            else
+                PreviousPairsFound = PairsFound;
+            
+        }/* while */
     }
     
     void Algo_NakedTriplets()
