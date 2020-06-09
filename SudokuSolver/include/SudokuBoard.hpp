@@ -269,7 +269,6 @@ public:
     {
         uint8_t TwoSolutionsCells = 0;
         
-        printf("BOARD INFO:\n");
         printf("%s\n", this->CellsMatrixAsONEstringColor.c_str());
     }
     
@@ -1178,7 +1177,9 @@ private:
         printf("\nFound a solution using '%s': [%x][%x] = %c:\n", AlgoApplied.c_str(), Coords->x, Coords->y, solution );
         
         /* Update visual board containing last solution */
-        PrintBoard();
+        this->PrintBoard();
+    
+        this->PrintAllPosibilities();
     
         // Wait for user to continue
         printf("Press a key to continue solving...");
