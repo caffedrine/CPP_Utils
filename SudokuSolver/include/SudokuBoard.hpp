@@ -88,7 +88,7 @@ class SudokuBoard
         possibility_t PossibleSolutions[SUDOKU_MAX_SIZE];
         coord_t Coord;
         
-        uint8_t GetSolutionsNumber()
+        uint8_t GetPossibleSolutionsNumber()
         {
             uint8_t Result = 0;
             if( val == UNSOLVED_SYMBOL )
@@ -102,7 +102,7 @@ class SudokuBoard
             }
             return Result;
         }
-        bool ContainSolution(char Solution)
+        bool ContainPossibleSolution(char Solution)
         {
             bool Result = false;
             if( val == UNSOLVED_SYMBOL )
@@ -121,14 +121,14 @@ class SudokuBoard
             }
             return Result;
         }
-        bool ContainSolutions(char *Solutions, uint8_t SolutionsNumber)
+        bool ContainPossibleSolutions(char *Solutions, uint8_t SolutionsNumber)
         {
             bool Result = false;
             if( val == UNSOLVED_SYMBOL )
             {
                 for( int solIdx = 0; solIdx < SolutionsNumber; solIdx++ )
                 {
-                    if( !ContainSolution(Solutions[solIdx]) )
+                    if( !ContainPossibleSolution(Solutions[solIdx]) )
                     {
                         Result = false;
                         break;
@@ -137,7 +137,7 @@ class SudokuBoard
             }
             return Result;
         }
-        uint8_t GetSolutions(char *Solutions)
+        uint8_t GetPossibleSolutions(char *Solutions)
         {
             uint8_t SolutionsNo = 0;
             if( val != UNSOLVED_SYMBOL )
@@ -152,17 +152,7 @@ class SudokuBoard
             }
             return SolutionsNo;
         }
-        bool ContainExactSolutions(char *Solutions)
-        {
-        
-        }
     } cell_extended_t;
-    
-    typedef struct
-    {
-        cell_extended_t Cell1;
-        cell_extended_t Cell2;
-    } pair_t;
     
     typedef struct
     {
@@ -209,7 +199,7 @@ public:
     void PrintTimeElapsed()
     {
         static bool FirstPrint = true;
-        if( FirstPrint == false )
+        if( !FirstPrint )
         {
             /* Move cursor up to the first line */
             for( int i = 0; i < this->Size + 1; i++ )
@@ -229,7 +219,7 @@ public:
         fflush(stdout);
         
         /* Move cursor back to the end */
-        if( FirstPrint == false )
+        if( !FirstPrint )
         {
             /* Move cursor up to the first line */
             for( int i = 0; i < this->Size; i++ )
@@ -243,28 +233,44 @@ public:
     
     void PrintBoard()
     {
-        static bool FirstPrint = true;
-        if( FirstPrint == false )
-        {
-            /* Display can be cleared as it is not first time matrix is being printed */
-            for( int i = 0; i < this->Size; i++ )
-            {
-                printf("\33[2K\r"); // Erase current line
-                printf("\33[A\r"); // Move cursor up one line
-            }
-        }
+//        static bool FirstPrint = true;
+//        if( ! FirstPrint )
+//        {
+//            /* Display can be cleared as it is not first time matrix is being printed */
+//            for( int i = 0; i < this->Size; i++ )
+//            {
+//                printf("\33[2K\r"); // Erase current line
+//                printf("\33[A\r"); // Move cursor up one line
+//            }
+//        }
         
-        for( int i = 0; i < 13; i++ )
+        /* Print first line */
+        printf("  ");
+        for(int i = 0; i < this->Size; i++)
+            printf("%x ", i);
+        printf("\n");
+        
+        
+        for( int i = 0; i < this->Size; i++ )
         {
-            for( int j = 0; j < 13; j++ )
+            printf("%x ", i);
+            for( int j = 0; j < this->Size; j++ )
             {
                 printf("%s%c " ANSI_COLOR_RESET, AsciiColors[CellsMatrix[i][j].BlockNo], CellsMatrix[i][j].val);
-//                printf("%s%s " ANSI_COLOR_RESET, AsciiColors[CellsMatrix[i][j].BlockNo], (CellsMatrixAsStrings[i][j].c_str()) );
+                //printf(ANSI_COLOR_BLACK "%c" ANSI_COLOR_RESET, CellsMatrix[i][j].val);
             }
             printf("\n");
         }
         fflush(stdout); // Will now print everything in the stdout buffer
-        FirstPrint = false;
+//        FirstPrint = false;
+    }
+    
+    void PrintAllPosibilities()
+    {
+        uint8_t TwoSolutionsCells = 0;
+        
+        printf("BOARD INFO:\n");
+        printf("%s\n", this->CellsMatrixAsONEstringColor.c_str());
     }
     
     void Solve()
@@ -282,17 +288,17 @@ public:
             Algo_UpdatePossibilitiesTable();
             if( this->IsSolved() ) break;
             
-//            Algo_FullHouse_LastDigit();
-//            if( this->IsSolved() ) break;
+            Algo_FullHouse_LastDigit();
+            if( this->IsSolved() ) break;
             
             Algo_HiddenSingles();
             if( this->IsSolved() ) break;
             
-//            Algo_NakedSingles();
-//            if( this->IsSolved() ) break;
+            Algo_NakedSingles();
+            if( this->IsSolved() ) break;
             
             /* Update time elapsed */
-            this->PrintTimeElapsed();
+            //this->PrintTimeElapsed();
             
             /* Algorithms are blocked...find something better :) */
             if( this->CellsSolved == StartProgress )
@@ -307,7 +313,7 @@ public:
         if( !this->IsSolved() )
         {
             printf("Cells solved: %d. Can't solve from this point...\n\n", this->CellsSolved);
-            Print_Info();
+            PrintAllPosibilities();
         }
         else
         {
@@ -345,7 +351,7 @@ private:
         /* Update string representation */
         UpdateCellsStringRepresentation();
         
-        /* While there are possibilitie sbeing removed, keep updating table */
+        /* While there are possibilities being removed, keep updating table */
         while( PossibilityTableUpdateRequest )
         {
             /* As long as table update process is not finished this will be set to true by algorithms */
@@ -356,7 +362,7 @@ private:
 //            Algo_NakedPairs();
             
             /** Unconfirmed */
-            Algo_LockedCandidates_Type2_Claiming();
+//            Algo_LockedCandidates_Type2_Claiming();
 //            Algo_HiddenPairs();
 //            Algo_NakedTriplets();
         }
@@ -372,13 +378,10 @@ private:
             for( int x = 0; x < this->Size; x++ )
             {
                 /* Only loop through unknown symbols */
-                if( this->CellsMatrix[y][x].GetSolutionsNumber() == 1 )
+                if( this->CellsMatrix[y][x].GetPossibleSolutionsNumber() == 1 )
                 {
-                    /* Write solution to corresponding cell */
-                    this->CellsMatrix[y][x].val = this->CellsMatrix[y][x].PossibleSolutions[0].Val;
-                    
-                    /* Update status */
-                    this->IncCellsSolved();
+                    /* Propagate solution */
+                    this->FoundSolution(__func__,  &this->CellsMatrix[y][x].Coord, this->CellsMatrix[y][x].PossibleSolutions[0].Val);
                 }
                 
             }/*X*/
@@ -399,11 +402,8 @@ private:
                 uint8_t CellsContainingSymbolNo = this->GetApparitionsOnX(y, CurrentTryChar, CellsContainingSymbol);
                 if( CellsContainingSymbolNo == 1 ) /* If only one cell in this house contains this symbol, the solution must be this symbol */
                 {
-                    /* Write solution in it's corresponding cell */
-                    this->CellsMatrix[y][CellsContainingSymbol[0].Coord.x].val = CurrentTryChar;
-                    
-                    /* Notify the others about finding */
-                    this->IncCellsSolved();
+                    /* Propagate solution */
+                    this->FoundSolution(std::string(__func__) + " (lines)",  &this->CellsMatrix[y][CellsContainingSymbol[0].Coord.x].Coord, CurrentTryChar);
                 }
             }
             
@@ -414,11 +414,8 @@ private:
                 uint8_t CellsContainingSymbolNo = this->GetApparitionsOnY(x, CurrentTryChar, CellsContainingSymbol);
                 if( CellsContainingSymbolNo == 1 ) /* If only one cell in this house contains this symbol, the solution must be this symbol */
                 {
-                    /* Write solution in it's corresponding cell */
-                    this->CellsMatrix[CellsContainingSymbol[0].Coord.y][x].val = CurrentTryChar;
-                    
-                    /* Notify the others about finding */
-                    this->IncCellsSolved();
+                    /* Propagate solution */
+                    this->FoundSolution(std::string(__func__) + " (columns)",  &this->CellsMatrix[CellsContainingSymbol[0].Coord.y][x].Coord, CurrentTryChar);
                 }
             }
             
@@ -430,11 +427,8 @@ private:
                 GroupCellsContainingSymbolNo = this->GetApparitionsOnBlock(GroupId, CurrentTryChar, GroupCellsContainingSymbol);
                 if( GroupCellsContainingSymbolNo == 1 ) /* If only one cell in this house contains this symbol, the solution must be this symbol */
                 {
-                    /* Write solution in it's corresponding cell */
-                    this->CellsMatrix[GroupCellsContainingSymbol[0].Coord.y][GroupCellsContainingSymbol[0].Coord.x].val = CurrentTryChar;
-                    
-                    /* Notify the others about finding */
-                    this->IncCellsSolved();
+                    /* Propagate solution */
+                    this->FoundSolution(std::string(__func__) + " (blocks)",  &this->CellsMatrix[GroupCellsContainingSymbol[0].Coord.y][GroupCellsContainingSymbol[0].Coord.x].Coord, CurrentTryChar);
                 }
             }
             
@@ -452,13 +446,11 @@ private:
         {
             for( int x = 0; x < this->Size; x++ )
             {
-                if( this->CellsMatrix[y][x].GetSolutionsNumber() == 1 )
+                if( this->CellsMatrix[y][x].GetPossibleSolutionsNumber() == 1 )
                 {
-                    /* Only one possibility = solution */
-                    this->CellsMatrix[y][x].val = this->CellsMatrix[y][x].PossibleSolutions[0].Val;
+                    /* Propagate solution */
+                    this->FoundSolution(std::string(__func__),  &this->CellsMatrix[y][x].Coord, this->CellsMatrix[y][x].PossibleSolutions[0].Val);
                     
-                    /* Propagate the changes */
-                    this->IncCellsSolved();
                 }
             }/*x*/
         }/*y*/
@@ -486,11 +478,11 @@ private:
                     for( int y = 0; y < this->Size; y++ )
                         for( int x = 0; x < this->Size; x++)
                         {
-                            if( this->CellsMatrix[y][x].BlockNo == blockIdx && this->CellsMatrix[y][x].ContainSolution(CurrChar) )
+                            if( (this->CellsMatrix[y][x].BlockNo == blockIdx) && (this->CellsMatrix[y][x].ContainPossibleSolution(CurrChar)) )
                                 CellsFound[CellsFoundNo++] = this->CellsMatrix[y][x];
                         }
                     
-                    /* If block contain mutiple cells with given solutions -> go check further whether cells are on the same x or on the same y */
+                    /* If block contain multiple cells with given solutions -> go check further whether cells are on the same x or on the same y */
                     if( CellsFoundNo > 1 )
                     {
                         /* Check whether all cell have the same x or the same y */
@@ -501,7 +493,6 @@ private:
                                 HaveSameX = false;
                             if( CellsFound[0].Coord.y != CellsFound[cellIdx].Coord.y )
                                 HaveSameY = false;
-                            
                         }
                         
                         if( HaveSameX )
@@ -509,8 +500,10 @@ private:
                             int x = CellsFound[0].Coord.x;
                             for( int y = 0; y < this->Size; y++ )
                             {
-                                if( this->CellsMatrix[y][x].BlockNo != blockIdx && this->CellsMatrix[y][x].ContainSolution(CurrChar))
+                                if( (this->CellsMatrix[y][x].BlockNo != blockIdx) && (this->CellsMatrix[y][x].ContainPossibleSolution(CurrChar)))
+                                {
                                     this->RemovePossibility(x, y, CurrChar);
+                                }
                             }
                             PairsDetected++;
                         }
@@ -519,8 +512,10 @@ private:
                             int y = CellsFound[0].Coord.y;
                             for( int x = 0; x < this->Size; x++ )
                             {
-                                if( this->CellsMatrix[y][x].BlockNo != blockIdx && this->CellsMatrix[y][x].ContainSolution(CurrChar))
+                                if( (this->CellsMatrix[y][x].BlockNo != blockIdx) && (this->CellsMatrix[y][x].ContainPossibleSolution(CurrChar)))
+                                {
                                     this->RemovePossibility(x, y, CurrChar);
+                                }
                             }
                             PairsDetected++;
                         }
@@ -687,7 +682,7 @@ private:
             cell_extended_t CellsWithTwoSolutions[SUDOKU_MAX_SIZE] = {0};
             for( int x = 0; x < this->Size; x++ )
             {
-                if( this->CellsMatrix[y][x].GetSolutionsNumber() == 2 )
+                if( this->CellsMatrix[y][x].GetPossibleSolutionsNumber() == 2 )
                 {
                     CellsWithTwoSolutions[CellsWithTwoSolutionsNo++] = this->CellsMatrix[y][x];
                 }
@@ -728,7 +723,7 @@ private:
             cell_extended_t CellsWithTwoSolutions[SUDOKU_MAX_SIZE] = {0};
             for( int y = 0; y < this->Size; y++ )
             {
-                if( this->CellsMatrix[y][x].GetSolutionsNumber() == 2 )
+                if( this->CellsMatrix[y][x].GetPossibleSolutionsNumber() == 2 )
                 {
                     CellsWithTwoSolutions[CellsWithTwoSolutionsNo++] = this->CellsMatrix[y][x];
                 }
@@ -774,7 +769,7 @@ private:
             cell_extended_t CellsWithTwoSolutions[SUDOKU_MAX_SIZE] = {0};
             for( int blockCellIdx = 0; blockCellIdx < BlockCellsNo; blockCellIdx++ )
             {
-                if( BlockCells[blockCellIdx].GetSolutionsNumber() == 2 )
+                if( BlockCells[blockCellIdx].GetPossibleSolutionsNumber() == 2 )
                 {
                     CellsWithTwoSolutions[CellsWithTwoSolutionsNo++] = BlockCells[blockCellIdx];
                 }
@@ -992,7 +987,7 @@ private:
             cell_extended_t CellsWithThreeSolutions[SUDOKU_MAX_SIZE] = {0};
             for( int blockCellIdx = 0; blockCellIdx < BlockCellsNo; blockCellIdx++ )
             {
-                if( BlockCells[blockCellIdx].GetSolutionsNumber() == 3 )
+                if( BlockCells[blockCellIdx].GetPossibleSolutionsNumber() == 3 )
                 {
                     CellsWithThreeSolutions[CellsWithThreeSolutionsNo++] = BlockCells[blockCellIdx];
                 }
@@ -1003,7 +998,7 @@ private:
             cell_extended_t CellsWithTwoSolutions[SUDOKU_MAX_SIZE] = {0};
             for( int blockCellIdx = 0; blockCellIdx < BlockCellsNo; blockCellIdx++ )
             {
-                if( BlockCells[blockCellIdx].GetSolutionsNumber() == 2 )
+                if( BlockCells[blockCellIdx].GetPossibleSolutionsNumber() == 2 )
                 {
                     CellsWithTwoSolutions[CellsWithTwoSolutionsNo++] = BlockCells[blockCellIdx];
                 }
@@ -1049,7 +1044,7 @@ private:
                     currCellSolutions[0] = currCell.PossibleSolutions[0].Val;
                     currCellSolutions[1] = currCell.PossibleSolutions[1].Val;
                     
-                    if( CellsFilled[0].ContainSolutions(currCellSolutions, 2) )
+                    if( CellsFilled[0].ContainPossibleSolutions(currCellSolutions, 2) )
                     {
                         CellsFilled[CellsFilledNo++] = currCell;
                     }
@@ -1070,7 +1065,7 @@ private:
                         continue;
                     }
 
-//                    this->Print_Info();
+//                    this->PrintAllPosibilities();
 //                    TimeUtils::SleepMs(100);
                     
                     char exceptions[3];
@@ -1089,14 +1084,6 @@ private:
     
     }
     
-    void Print_Info()
-    {
-        uint8_t TwoSolutionsCells = 0;
-        
-        printf("BOARD INFO:\n");
-        printf("%s\n", this->CellsMatrixAsONEstringColor.c_str());
-    }
-    
     void UpdateCellsStringRepresentation()
     {
         /* Get the the number of most solutions to know how many should be between columns */
@@ -1106,9 +1093,9 @@ private:
         {
             for( int x = 0; x < this->Size; x++ )
             {
-                if( this->CellsMatrix[y][x].GetSolutionsNumber() > MostSolutions )
+                if( this->CellsMatrix[y][x].GetPossibleSolutionsNumber() > MostSolutions )
                 {
-                    MostSolutions = this->CellsMatrix[y][x].GetSolutionsNumber();
+                    MostSolutions = this->CellsMatrix[y][x].GetPossibleSolutionsNumber();
                 }
             }
         }
@@ -1154,14 +1141,14 @@ private:
                 }
                 else
                 {
-                    for( int solIdx = 0; solIdx < this->CellsMatrix[y][x].GetSolutionsNumber(); solIdx++ )
+                    for( int solIdx = 0; solIdx < this->CellsMatrix[y][x].GetPossibleSolutionsNumber(); solIdx++ )
                     {
                         char currSol = this->CellsMatrix[y][x].PossibleSolutions[solIdx].Val;
                         this->CellsMatrixAsStrings[y][x] += currSol;
                     }
     
                     /* Fill with empty spaces */
-                    for( int k = 0; k < (MostSolutions - this->CellsMatrix[y][x].GetSolutionsNumber()); k++ )
+                    for( int k = 0; k < (MostSolutions - this->CellsMatrix[y][x].GetPossibleSolutionsNumber()); k++ )
                     {
                         this->CellsMatrixAsStrings[y][x] += " ";
                     }
@@ -1177,20 +1164,32 @@ private:
     }
     
     /** **/
-    void IncCellsSolved()
+    void FoundSolution(const std::string& AlgoApplied, coord_t *Coords, char solution)
     {
+        /* Update matrix with given solution */
+        this->CellsMatrix[Coords->y][Coords->x].val = solution;
+    
+        /* Count how many cells were solved */
         this->CellsSolved++;
-        
+    
         /* Update board possibilities every time a solution is being found */
         this->Algo_UpdatePossibilitiesTable();
-        
-        /* Update string representations of cells possibilities */
+    
+        printf("\nFound a solution using '%s': [%x][%x] = %c:\n", AlgoApplied.c_str(), Coords->x, Coords->y, solution );
         
         /* Update visual board containing last solution */
         PrintBoard();
-        
-        /* Wait for board to be updated on screen */
-//        TimeUtils::SleepMs(100);
+    
+        // Wait for user to continue
+        printf("Press a key to continue solving...");
+        getchar();
+        fflush(stdin);
+        fflush(stdout);
+    }
+    
+    void IncCellsSolved()
+    {
+
     
     }
     bool IsSolved()
@@ -1209,6 +1208,13 @@ private:
     }
     void RemovePossibility(uint8_t x, uint8_t y, char possibilityToRemove)
     {
+        if( (x == 1) && (y == 8) && (possibilityToRemove == 'd') )
+        {
+            int dummy = 0u | x;
+            if( dummy )
+                int t = 0;
+        }
+        
         for( int pIdx = 0; pIdx < this->Size; pIdx++ )
         {
             possibility_t posibility = this->CellsMatrix[y][x].PossibleSolutions[pIdx];
@@ -1218,12 +1224,12 @@ private:
             if( posibility.Val == possibilityToRemove )
             {
                 /* Indicate that the rest of algorithms needs to check with this update */
-                PossibilityTableUpdateRequest = true;
+                this->PossibilityTableUpdateRequest = true;
                 
                 /* Invalidate the possibility */
                 posibility.Val = 0;
                 
-                /* Shift the other is end of array not reached */
+                /* Shift the other if end of array not reached */
                 for( int i = pIdx; i < this->Size - 1; i++ )
                 {
                     this->CellsMatrix[y][x].PossibleSolutions[i] = this->CellsMatrix[y][x].PossibleSolutions[i + 1];
@@ -1267,7 +1273,7 @@ private:
     bool IsInPossibleSolutionNoCrossCheck(uint8_t x, uint8_t y, char SolutionToCheck)
     {
         bool Result = false;
-        /* Check whether it's safe to place this symbol on this vox */
+        /* Check whether it's safe to place this symbol on this box */
         if( !this->AlreadyOnX(y, SolutionToCheck) &&
             !this->AlreadyOnY(x, SolutionToCheck) &&
             !this->AlreadyOnBlock(this->CellsMatrix[y][x].BlockNo, SolutionToCheck) &&
@@ -1425,7 +1431,7 @@ private:
     bool HaveSameSolutions(cell_extended_t *Cell1, cell_extended_t *Cell2)
     {
         bool Result = true;
-        if( Cell1->GetSolutionsNumber() != Cell2->GetSolutionsNumber() )
+        if( Cell1->GetPossibleSolutionsNumber() != Cell2->GetPossibleSolutionsNumber() )
         {
             Result = false;
         }
@@ -1464,9 +1470,9 @@ private:
         {
             for( int x = 0; x < this->Size; x++ )
             {
-                if( this->CellsMatrix[y][x].BlockNo == GroupId && this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL )
+                if( (this->CellsMatrix[y][x].BlockNo == GroupId) && (this->CellsMatrix[y][x].val == UNSOLVED_SYMBOL) )
                 {
-                    if( this->CellsMatrix[y][x].ContainSolution(Solution) )
+                    if( this->CellsMatrix[y][x].ContainPossibleSolution(Solution) )
                     {
                         if( ApparitionsArray != nullptr )
                         {
@@ -1486,7 +1492,7 @@ private:
         /* Get all cells within Y */
         for( int y = 0; y < this->Size; y++ )
         {
-            if( this->CellsMatrix[y][X].val == UNSOLVED_SYMBOL && this->CellsMatrix[y][X].ContainSolution(Solution) )
+            if( (this->CellsMatrix[y][X].val == UNSOLVED_SYMBOL) && (this->CellsMatrix[y][X].ContainPossibleSolution(Solution)) )
             {
                 if( ApparitionsArray != nullptr )
                 {
@@ -1504,7 +1510,7 @@ private:
         /* Get all cells within X */
         for( int x = 0; x < this->Size; x++ )
         {
-            if( this->CellsMatrix[Y][x].val == UNSOLVED_SYMBOL && this->CellsMatrix[Y][x].ContainSolution(Solution) )
+            if( (this->CellsMatrix[Y][x].val == UNSOLVED_SYMBOL) && (this->CellsMatrix[Y][x].ContainPossibleSolution(Solution)) )
             {
                 if( ApparitionsArray != nullptr )
                 {
@@ -1515,7 +1521,6 @@ private:
         }
         return Ret;
     }
-    
 };
 
 #endif // _SUDOKUBOARD_H_
