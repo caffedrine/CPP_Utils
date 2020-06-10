@@ -265,7 +265,7 @@ public:
 //        FirstPrint = false;
     }
     
-    void PrintAllPosibilities()
+    void PrintAllPossibilities()
     {
         uint8_t TwoSolutionsCells = 0;
         
@@ -287,14 +287,14 @@ public:
             Algo_UpdatePossibilitiesTable();
             if( this->IsSolved() ) break;
             
-            Algo_FullHouse_LastDigit();
+            //Algo_FullHouse_LastDigit();
             if( this->IsSolved() ) break;
             
             Algo_HiddenSingles();
             if( this->IsSolved() ) break;
             
-            Algo_NakedSingles();
-            if( this->IsSolved() ) break;
+            //Algo_NakedSingles();
+            //if( this->IsSolved() ) break;
             
             /* Update time elapsed */
             //this->PrintTimeElapsed();
@@ -312,7 +312,7 @@ public:
         if( !this->IsSolved() )
         {
             printf("Cells solved: %d. Can't solve from this point...\n\n", this->CellsSolved);
-            PrintAllPosibilities();
+            PrintAllPossibilities();
         }
         else
         {
@@ -365,6 +365,9 @@ private:
 //            Algo_HiddenPairs();
 //            Algo_NakedTriplets();
         }
+    
+        /* Update string representation */
+        UpdateCellsStringRepresentation();
         
         /* To make sure next time will try to update as well */
         PossibilityTableUpdateRequest = true;
@@ -1064,7 +1067,7 @@ private:
                         continue;
                     }
 
-//                    this->PrintAllPosibilities();
+//                    this->PrintAllPossibilities();
 //                    TimeUtils::SleepMs(100);
                     
                     char exceptions[3];
@@ -1171,15 +1174,17 @@ private:
         /* Count how many cells were solved */
         this->CellsSolved++;
     
+        printf("\nFound a solution using '%s': [%x][%x] = %c:\n", AlgoApplied.c_str(), Coords->x, Coords->y, solution );
+        printf("BEFORE:\n");
+        this->PrintAllPossibilities();
+        
         /* Update board possibilities every time a solution is being found */
         this->Algo_UpdatePossibilitiesTable();
-    
-        printf("\nFound a solution using '%s': [%x][%x] = %c:\n", AlgoApplied.c_str(), Coords->x, Coords->y, solution );
         
         /* Update visual board containing last solution */
-        this->PrintBoard();
-    
-        this->PrintAllPosibilities();
+        //this->PrintBoard();
+        printf("AFTER:\n");
+        this->PrintAllPossibilities();
     
         // Wait for user to continue
         printf("Press a key to continue solving...");
@@ -1209,13 +1214,6 @@ private:
     }
     void RemovePossibility(uint8_t x, uint8_t y, char possibilityToRemove)
     {
-        if( (x == 1) && (y == 8) && (possibilityToRemove == 'd') )
-        {
-            int dummy = 0u | x;
-            if( dummy )
-                int t = 0;
-        }
-        
         for( int pIdx = 0; pIdx < this->Size; pIdx++ )
         {
             possibility_t posibility = this->CellsMatrix[y][x].PossibleSolutions[pIdx];
