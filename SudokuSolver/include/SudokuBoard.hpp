@@ -287,7 +287,7 @@ public:
             Algo_UpdatePossibilitiesTable();
             if( this->IsSolved() ) break;
             
-            //Algo_FullHouse_LastDigit();
+            Algo_FullHouse_LastDigit();
             if( this->IsSolved() ) break;
             
             Algo_HiddenSingles();
@@ -358,16 +358,13 @@ private:
             
             /** Confirmed */
             Algo_LockedCandidates_Type1_Pointing();
-//            Algo_NakedPairs();
+            //Algo_NakedPairs();
+            Algo_LockedCandidates_Type2_Claiming();
             
             /** Unconfirmed */
-//            Algo_LockedCandidates_Type2_Claiming();
 //            Algo_HiddenPairs();
 //            Algo_NakedTriplets();
         }
-    
-        /* Update string representation */
-        UpdateCellsStringRepresentation();
         
         /* To make sure next time will try to update as well */
         PossibilityTableUpdateRequest = true;
@@ -504,6 +501,7 @@ private:
                             {
                                 if( (this->CellsMatrix[y][x].BlockNo != blockIdx) && (this->CellsMatrix[y][x].ContainPossibleSolution(CurrChar)))
                                 {
+                                    //printf("Removed possibility '%c' from [x:%x][y:%x] as it is on the same X in block %d\n", CurrChar, x, y, blockIdx);
                                     this->RemovePossibility(x, y, CurrChar);
                                 }
                             }
@@ -516,6 +514,7 @@ private:
                             {
                                 if( (this->CellsMatrix[y][x].BlockNo != blockIdx) && (this->CellsMatrix[y][x].ContainPossibleSolution(CurrChar)))
                                 {
+                                    //printf("Removed possibility '%c' from [x:%x][y:%x] as it is on the same Y in block %d\n", CurrChar, x, y, blockIdx);
                                     this->RemovePossibility(x, y, CurrChar);
                                 }
                             }
@@ -585,8 +584,9 @@ private:
                                 
                                 if( currentCell.val != UNSOLVED_SYMBOL )
                                     continue;
-                                
-                                if( currentCell.Coord.y != y )
+    
+                                // Only remove possibility if already contained
+                                if( (currentCell.Coord.y != y) && (currentCell.ContainPossibleSolution(CurrentChar)) )
                                 {
                                     this->RemovePossibility(currentCell.Coord.x, currentCell.Coord.y, CurrentChar);
                                 }
@@ -646,7 +646,8 @@ private:
                                 if( currentCell.val != UNSOLVED_SYMBOL )
                                     continue;
                                 
-                                if( currentCell.Coord.x != x )
+                                // Only remove posibility if it is contained by the cell
+                                if( (currentCell.Coord.x != x) && (currentCell.ContainPossibleSolution(CurrentChar)) )
                                 {
                                     this->RemovePossibility(currentCell.Coord.x, currentCell.Coord.y, CurrentChar);
                                 }
@@ -1168,15 +1169,15 @@ private:
     /** **/
     void FoundSolution(const std::string& AlgoApplied, coord_t *Coords, char solution)
     {
+        printf("\nFound a solution using '%s': [%x][%x] = %c:\n", AlgoApplied.c_str(), Coords->x, Coords->y, solution );
+        printf("BEFORE:\n");
+        this->PrintAllPossibilities();
+        
         /* Update matrix with given solution */
         this->CellsMatrix[Coords->y][Coords->x].val = solution;
     
         /* Count how many cells were solved */
         this->CellsSolved++;
-    
-        printf("\nFound a solution using '%s': [%x][%x] = %c:\n", AlgoApplied.c_str(), Coords->x, Coords->y, solution );
-        printf("BEFORE:\n");
-        this->PrintAllPossibilities();
         
         /* Update board possibilities every time a solution is being found */
         this->Algo_UpdatePossibilitiesTable();
@@ -1188,6 +1189,8 @@ private:
     
         // Wait for user to continue
         printf("Press a key to continue solving...");
+        fflush(stdin);
+        fflush(stdout);
         getchar();
         fflush(stdin);
         fflush(stdout);
@@ -1214,6 +1217,11 @@ private:
     }
     void RemovePossibility(uint8_t x, uint8_t y, char possibilityToRemove)
     {
+        if( (x==1) && (y==4) && (possibilityToRemove == '8') )
+        {
+            int dummy = 0;
+        }
+        
         for( int pIdx = 0; pIdx < this->Size; pIdx++ )
         {
             possibility_t posibility = this->CellsMatrix[y][x].PossibleSolutions[pIdx];
@@ -1263,7 +1271,7 @@ private:
                     IsOnExceptionList = true;
                 }
             }
-            if( !IsOnExceptionList )
+            if( (!IsOnExceptionList) && (this->CellsMatrix[y][x].ContainPossibleSolution(currChr)))
             {
                 this->RemovePossibility(x, y, currChr);
             }
@@ -1291,7 +1299,7 @@ private:
             {
                 /* Variable to store current char to be stored */
                 char CurrentTryChar = Charset[TryCharIdx];
-                /* Check whether it's safe to place this symbol on this vox */
+                /* Check whether it's safe to place this symbol on this box */
                 if( this->IsInPossibleSolutionNoCrossCheck(x, y, CurrentTryChar) )
                 {
                     if( PossibleSolutionsBuffer != nullptr )
@@ -1389,7 +1397,7 @@ private:
         {
             for( int x = 0; x < this->Size; x++ )
             {
-                if( ExcludeSolved == true && this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL ) /* Exclude already solved if specified */
+                if( (ExcludeSolved) && (this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL) ) /* Exclude already solved if specified */
                 {
                     continue;
                 }
