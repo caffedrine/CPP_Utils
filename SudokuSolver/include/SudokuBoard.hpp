@@ -363,8 +363,7 @@ private:
             Algo_HiddenPairs();
             
             /** Unconfirmed */
-            
-//            Algo_NakedTriplets();
+            Algo_NakedTriplets();
         }
         
         /* To make sure next time will try to update as well */
@@ -957,22 +956,6 @@ private:
          */
         
         /** Blocks */
-
-//        this->CellsMatrix[0][0].PossibleSolutions[0].Val = '1';
-//        this->CellsMatrix[0][0].PossibleSolutions[1].Val = '2';
-//        this->CellsMatrix[0][0].PossibleSolutions[2].Val = '5';
-//        this->CellsMatrix[0][0].PossibleSolutions[3].Val = 0;
-//
-//        this->CellsMatrix[1][1].PossibleSolutions[0].Val = '1';
-//        this->CellsMatrix[1][1].PossibleSolutions[1].Val = '2';
-//        this->CellsMatrix[1][1].PossibleSolutions[2].Val = '5';
-//        this->CellsMatrix[1][1].PossibleSolutions[3].Val = 0;
-//
-//        this->CellsMatrix[1][2].PossibleSolutions[0].Val = '1';
-//        this->CellsMatrix[1][2].PossibleSolutions[1].Val = '2';
-//        this->CellsMatrix[1][2].PossibleSolutions[2].Val = '5';
-//        this->CellsMatrix[1][2].PossibleSolutions[3].Val = 0;
-        
         for( int blockId = 0; blockId < this->Size; blockId++ )
         {
             /* Get all cells within block */
