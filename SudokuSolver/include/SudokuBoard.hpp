@@ -123,8 +123,8 @@ class SudokuBoard
         }
         bool ContainPossibleSolutions(char *Solutions, uint8_t SolutionsNumber)
         {
-            bool Result = false;
-            if( val == UNSOLVED_SYMBOL )
+            bool Result = true;
+            if( this->val == UNSOLVED_SYMBOL )
             {
                 for( int solIdx = 0; solIdx < SolutionsNumber; solIdx++ )
                 {
@@ -134,6 +134,10 @@ class SudokuBoard
                         break;
                     }
                 }
+            }
+            else
+            {
+                Result = false;
             }
             return Result;
         }
@@ -502,7 +506,8 @@ private:
                                 if( (this->CellsMatrix[y][x].BlockNo != blockIdx) && (this->CellsMatrix[y][x].ContainPossibleSolution(CurrChar)))
                                 {
                                     //printf("Removed possibility '%c' from [x:%x][y:%x] as it is on the same X in block %d\n", CurrChar, x, y, blockIdx);
-                                    this->RemovePossibility(x, y, CurrChar);
+                                    if( this->CellsMatrix[y][x].ContainPossibleSolution(CurrChar) )
+                                        this->RemovePossibility(x, y, CurrChar);
                                 }
                             }
                             PairsDetected++;
@@ -515,7 +520,8 @@ private:
                                 if( (this->CellsMatrix[y][x].BlockNo != blockIdx) && (this->CellsMatrix[y][x].ContainPossibleSolution(CurrChar)))
                                 {
                                     //printf("Removed possibility '%c' from [x:%x][y:%x] as it is on the same Y in block %d\n", CurrChar, x, y, blockIdx);
-                                    this->RemovePossibility(x, y, CurrChar);
+                                    if( this->CellsMatrix[y][x].ContainPossibleSolution(CurrChar) )
+                                        this->RemovePossibility(x, y, CurrChar);
                                 }
                             }
                             PairsDetected++;
@@ -588,7 +594,8 @@ private:
                                 // Only remove possibility if already contained
                                 if( (currentCell.Coord.y != y) && (currentCell.ContainPossibleSolution(CurrentChar)) )
                                 {
-                                    this->RemovePossibility(currentCell.Coord.x, currentCell.Coord.y, CurrentChar);
+                                    if( this->CellsMatrix[currentCell.Coord.y][currentCell.Coord.x].ContainPossibleSolution(CurrentChar) )
+                                        this->RemovePossibility(currentCell.Coord.x, currentCell.Coord.y, CurrentChar);
                                 }
                             }
                         }
@@ -649,7 +656,8 @@ private:
                                 // Only remove posibility if it is contained by the cell
                                 if( (currentCell.Coord.x != x) && (currentCell.ContainPossibleSolution(CurrentChar)) )
                                 {
-                                    this->RemovePossibility(currentCell.Coord.x, currentCell.Coord.y, CurrentChar);
+                                    if( this->CellsMatrix[currentCell.Coord.y][currentCell.Coord.x].ContainPossibleSolution(CurrentChar) )
+                                        this->RemovePossibility(currentCell.Coord.x, currentCell.Coord.y, CurrentChar);
                                 }
                             }
                         }
@@ -708,8 +716,11 @@ private:
                             {
                                 continue;
                             }
-                            this->RemovePossibility(x, y, cell1.PossibleSolutions[0].Val);
-                            this->RemovePossibility(x, y, cell1.PossibleSolutions[1].Val);
+                            
+                            if( this->CellsMatrix[y][x].ContainPossibleSolution(cell1.PossibleSolutions[0].Val) )
+                                this->RemovePossibility(x, y, cell1.PossibleSolutions[0].Val);
+                            if( this->CellsMatrix[y][x].ContainPossibleSolution(cell1.PossibleSolutions[1].Val) )
+                                this->RemovePossibility(x, y, cell1.PossibleSolutions[1].Val);
                         }
                     }
                 }
@@ -747,8 +758,11 @@ private:
                             {
                                 continue;
                             }
-                            this->RemovePossibility(x, y, cell1.PossibleSolutions[0].Val);
-                            this->RemovePossibility(x, y, cell1.PossibleSolutions[1].Val);
+    
+                            if( this->CellsMatrix[y][x].ContainPossibleSolution(cell1.PossibleSolutions[0].Val) )
+                                this->RemovePossibility(x, y, cell1.PossibleSolutions[0].Val);
+                            if( this->CellsMatrix[y][x].ContainPossibleSolution(cell1.PossibleSolutions[1].Val) )
+                                this->RemovePossibility(x, y, cell1.PossibleSolutions[1].Val);
                         }
                     }
                 }
@@ -791,8 +805,12 @@ private:
                             {
                                 continue;
                             }
-                            this->RemovePossibility(BlockCells[blockCellIdx].Coord.x, BlockCells[blockCellIdx].Coord.y, cell1.PossibleSolutions[0].Val);
-                            this->RemovePossibility(BlockCells[blockCellIdx].Coord.x, BlockCells[blockCellIdx].Coord.y, cell1.PossibleSolutions[1].Val);
+    
+                            if( this->CellsMatrix[BlockCells[blockCellIdx].Coord.y][BlockCells[blockCellIdx].Coord.x].ContainPossibleSolution(cell1.PossibleSolutions[0].Val) )
+                                this->RemovePossibility(BlockCells[blockCellIdx].Coord.x, BlockCells[blockCellIdx].Coord.y, cell1.PossibleSolutions[0].Val);
+    
+                            if( this->CellsMatrix[BlockCells[blockCellIdx].Coord.y][BlockCells[blockCellIdx].Coord.x].ContainPossibleSolution(cell1.PossibleSolutions[1].Val) )
+                                this->RemovePossibility(BlockCells[blockCellIdx].Coord.x, BlockCells[blockCellIdx].Coord.y, cell1.PossibleSolutions[1].Val);
                         }
                     }
                 }
@@ -963,7 +981,7 @@ private:
             cell_extended_t BlockCells[SUDOKU_MAX_SIZE] = {0};
             BlockCellsNo = this->GetBlockElements(blockId, BlockCells, true);
             
-            /* Keep only keep only which have 3 possibilities */
+            /* Get all cells which have 3 possibilities */
             int CellsWithThreeSolutionsNo = 0;
             cell_extended_t CellsWithThreeSolutions[SUDOKU_MAX_SIZE] = {0};
             for( int blockCellIdx = 0; blockCellIdx < BlockCellsNo; blockCellIdx++ )
@@ -974,7 +992,7 @@ private:
                 }
             }
             
-            /* Keep only keep only which have 2 possibilities */
+            /* Get all cells which have have 2 possibilities */
             int CellsWithTwoSolutionsNo = 0;
             cell_extended_t CellsWithTwoSolutions[SUDOKU_MAX_SIZE] = {0};
             for( int blockCellIdx = 0; blockCellIdx < BlockCellsNo; blockCellIdx++ )
@@ -988,12 +1006,12 @@ private:
             int CellsFilledNo = 0;
             cell_extended_t CellsFilled[3] = {0};
             
-            /* Check whether we have solutions overlapping */
+            /* Check whether we have 3 cells containing the same 3 solutions - at leas one is required */
             for( int cell1Idx = 0; cell1Idx < CellsWithThreeSolutionsNo; cell1Idx++ )
             {
                 CellsFilled[CellsFilledNo++] = CellsWithThreeSolutions[cell1Idx];
                 
-                /* Check if there are some other 3 solutions cells */
+                /* Check if there are some other cells with exact 3 solutions */
                 for( int cell2Idx = cell1Idx + 1; cell2Idx < CellsWithThreeSolutionsNo; cell2Idx++ )
                 {
                     if( HaveSameSolutions(&CellsFilled[0], &CellsWithThreeSolutions[cell2Idx]) )
@@ -1005,18 +1023,18 @@ private:
                         break;
                 }
                 
-                if( CellsFilledNo == 1 )
-                {
-                    CellsFilledNo = 0;
-                }
-                else if( CellsFilledNo == 3 )
+                if( CellsFilledNo >= 1 )
                 {
                     break;
                 }
+                else
+                {
+                    CellsFilledNo = 0;
+                }
             }
             
-            /* If there are less than three cells found, check for cells with two solutions */
-            if( CellsFilledNo > 0 && CellsFilledNo < 3 )
+            /* If there are less than 3 cells found containing the same 3 solutions, check for intersections with cells with two solutions */
+            if( (CellsFilledNo > 0) && (CellsFilledNo < 3) && ( (CellsWithTwoSolutionsNo+CellsFilledNo) >= 3) )
             {
                 for( int cellIdx = 0; cellIdx < CellsWithTwoSolutionsNo; cellIdx++ )
                 {
@@ -1024,12 +1042,12 @@ private:
                     char currCellSolutions[2] = {0};
                     currCellSolutions[0] = currCell.PossibleSolutions[0].Val;
                     currCellSolutions[1] = currCell.PossibleSolutions[1].Val;
-                    
+
                     if( CellsFilled[0].ContainPossibleSolutions(currCellSolutions, 2) )
                     {
                         CellsFilled[CellsFilledNo++] = currCell;
                     }
-                    
+
                     if( CellsFilledNo == 3 )
                         break;
                 }
@@ -1045,19 +1063,30 @@ private:
                     {
                         continue;
                     }
-
-//                    this->PrintAllPossibilities();
-//                    TimeUtils::SleepMs(100);
                     
-                    char exceptions[3];
-                    exceptions[0] = CellsFilled[0].PossibleSolutions[0].Val;
-                    exceptions[1] = CellsFilled[0].PossibleSolutions[1].Val;
-                    exceptions[2] = CellsFilled[0].PossibleSolutions[2].Val;
-                    this->RemoveAllPosibilitiesExcept(BlockCells[blockCellIdx].Coord.x, BlockCells[blockCellIdx].Coord.y, exceptions, 3);
+                    /* Since algo started gathering cells with 3 solutions, the first one must have 3 possibilities otherwise it would fall for naked pairs*/
+                    if( this->CellsMatrix[BlockCells[blockCellIdx].Coord.y][BlockCells[blockCellIdx].Coord.x].ContainPossibleSolution(CellsFilled[0].PossibleSolutions[0].Val))
+                        this->RemovePossibility( BlockCells[blockCellIdx].Coord.x, BlockCells[blockCellIdx].Coord.y, CellsFilled[0].PossibleSolutions[0].Val );
+    
+                    if( this->CellsMatrix[BlockCells[blockCellIdx].Coord.y][BlockCells[blockCellIdx].Coord.x].ContainPossibleSolution(CellsFilled[0].PossibleSolutions[1].Val))
+                        this->RemovePossibility( BlockCells[blockCellIdx].Coord.x, BlockCells[blockCellIdx].Coord.y, CellsFilled[0].PossibleSolutions[1].Val );
+    
+                    if( this->CellsMatrix[BlockCells[blockCellIdx].Coord.y][BlockCells[blockCellIdx].Coord.x].ContainPossibleSolution(CellsFilled[0].PossibleSolutions[2].Val))
+                        this->RemovePossibility( BlockCells[blockCellIdx].Coord.x, BlockCells[blockCellIdx].Coord.y, CellsFilled[0].PossibleSolutions[2].Val );
                 }
             }
-            
         }/* Blocks */
+        
+        /** Lines */
+        for( int y = 0; y < this->Size; y++ )
+        {
+            /* Get all cells within line */
+            int BlockCellsNo = 0;
+            cell_extended_t LineCells[SUDOKU_MAX_SIZE] = {0};
+            //
+    
+        }
+        
     }
     
     void Algo_HiddenTriplets()
@@ -1200,6 +1229,12 @@ private:
             int dummy = 0;
         }
         
+        // Do not delete if possibility does not exist, nor print as nothing has changed
+        if( !this->CellsMatrix[y][x].ContainPossibleSolution(possibilityToRemove) )
+        {
+            return;
+        }
+        
         for( int pIdx = 0; pIdx < this->Size; pIdx++ )
         {
             possibility_t posibility = this->CellsMatrix[y][x].PossibleSolutions[pIdx];
@@ -1225,6 +1260,10 @@ private:
                 UpdateCellsStringRepresentation();
             }
         }
+        
+        printf("Removed possibility '%c' from [%d][%d]\n", possibilityToRemove, x, y);
+        this->PrintAllPossibilities();
+        
     }
     void RemoveAllPosibilitiesExcept(uint8_t x, uint8_t y, char Exception)
     {
@@ -1399,7 +1438,7 @@ private:
         {
             for( int x = 0; x < this->Size; x++ )
             {
-                if( ExcludeSolved == true && this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL ) /* Exclude already solved if specified */
+                if( (ExcludeSolved == true) && this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL ) /* Exclude already solved if specified */
                 {
                     continue;
                 }
@@ -1420,6 +1459,10 @@ private:
         {
             Result = false;
         }
+        else if ( (Cell1->val != UNSOLVED_SYMBOL) || (Cell2->val != UNSOLVED_SYMBOL))
+        {
+            Result = false;
+        }
         else
         {
             for( int solutionsCell1 = 0; solutionsCell1 < this->Size; solutionsCell1++ )
@@ -1436,7 +1479,6 @@ private:
                 }
             }
         }
-        
         return Result;
     }
     void ClearPossibleSolutions(uint8_t X, uint8_t Y)
