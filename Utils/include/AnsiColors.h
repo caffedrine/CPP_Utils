@@ -18,7 +18,6 @@
 	#define ANSI_COLOR_BLUE_BOLD        ""
 	#define ANSI_COLOR_MAGENTA          ""
     #define ANSI_COLOR_MAGENTA_BOLD     ""
-    
 #else
 
     #define ANSI_COLOR_RED              "\x1b[0;31m"

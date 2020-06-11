@@ -16,6 +16,7 @@
 #include <TimeUtils.h>
 #include <cstring>
 #include <Exception.h>
+#include <Math/combinations/Combinations.h>
 
 #define UNSOLVED_SYMBOL     '*'
 #define SUDOKU_MAX_SIZE     15
@@ -91,7 +92,7 @@ class SudokuBoard
         uint8_t GetPossibleSolutionsNumber()
         {
             uint8_t Result = 0;
-            if( val == UNSOLVED_SYMBOL )
+            if( this->val == UNSOLVED_SYMBOL )
             {
                 for( uint8_t solIdx = 0; solIdx < SUDOKU_MAX_SIZE; solIdx++ )
                 {
@@ -144,7 +145,7 @@ class SudokuBoard
         uint8_t GetPossibleSolutions(char *Solutions)
         {
             uint8_t SolutionsNo = 0;
-            if( val != UNSOLVED_SYMBOL )
+            if( this->val == UNSOLVED_SYMBOL )
             {
                 for( int solIdx = 0; solIdx < SUDOKU_MAX_SIZE; solIdx++ )
                 {
@@ -368,6 +369,7 @@ private:
             
             /** Unconfirmed */
             Algo_NakedTriplets();
+            Algo_HiddenTriplets();
         }
         
         /* To make sure next time will try to update as well */
@@ -1007,7 +1009,7 @@ private:
             cell_extended_t CellsFilled[3] = {0};
             
             /* Check whether we have 3 cells containing the same 3 solutions - at least one is required */
-            for( int cell1Idx = 0; cell1Idx < CellsWithThreeSolutionsNo; cell1Idx++ )
+            for( int cell1Idx = 0; cell1Idx < CellsWithThreeSolutionsNo - 1; cell1Idx++ )
             {
                 CellsFilled[CellsFilledNo++] = CellsWithThreeSolutions[cell1Idx];
                 
@@ -1104,7 +1106,7 @@ private:
             int CellsFilledNo = 0;
             cell_extended_t CellsFilled[3] = {0};
             /* Check whether we have 3 cells containing the same 3 solutions - at leas one is required */
-            for( int cell1Idx = 0; cell1Idx < CellsWithThreeSolutionsNo; cell1Idx++ )
+            for( int cell1Idx = 0; cell1Idx < CellsWithThreeSolutionsNo - 1; cell1Idx++ )
             {
                 CellsFilled[CellsFilledNo++] = CellsWithThreeSolutions[cell1Idx];
         
@@ -1200,7 +1202,7 @@ private:
             int CellsFilledNo = 0;
             cell_extended_t CellsFilled[3] = {0};
             /* Check whether we have 3 cells containing the same 3 solutions - at least one is required */
-            for( int cell1Idx = 0; cell1Idx < CellsWithThreeSolutionsNo; cell1Idx++ )
+            for( int cell1Idx = 0; cell1Idx < CellsWithThreeSolutionsNo - 1; cell1Idx++ )
             {
                 CellsFilled[CellsFilledNo++] = CellsWithThreeSolutions[cell1Idx];
             
@@ -1274,16 +1276,33 @@ private:
             cell_extended_t ColumnCells[SUDOKU_MAX_SIZE] = {0};
             ColumnCellsNo = this->GetColumnElements(x, ColumnCells, true);
             
-            for( int celIdx = 0; celIdx < ColumnCellsNo; celIdx++ )
+            for( int celIdx = 0; celIdx < ColumnCellsNo - 1; celIdx++ )
             {
-            
+                char cellSolutions[SUDOKU_MAX_SIZE] = {0};
+                uint8_t cellSolutionsNo = ColumnCells[celIdx].GetPossibleSolutions(cellSolutions);
+                if( cellSolutionsNo < 3 )
+                    continue;
+    
+                for(int char1Idx = 0; char1Idx < cellSolutionsNo - 2; char1Idx++)
+                    for(int char2Idx = char1Idx + 1; char2Idx < cellSolutionsNo - 1; char2Idx++)
+                        for(int char3Idx = char2Idx + 1; char3Idx < cellSolutionsNo; char3Idx++)
+                        {
+                            char currCellSolutionsCombination[3] = {0};
+                            currCellSolutionsCombination[0] = cellSolutions[char1Idx];
+                            currCellSolutionsCombination[1] = cellSolutions[char2Idx];
+                            currCellSolutionsCombination[2] = cellSolutions[char3Idx];
+                            
+                            // Look through the rest of cells in this column whether this combination is found
+                            for( int cel2Idx = celIdx + 1; cel2Idx < ColumnCellsNo; cel2Idx++ )
+                            {
+                            
+                            }
+                        }
             }
             
         }/* Columns */
         
-        
         /* Lines */
-        
         
         /* Blocks */
     }

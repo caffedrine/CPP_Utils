@@ -1,7 +1,7 @@
 /*  
  *  File      : Combinations.h
  *  Created on: 2019-10-09
- *      Author: uib74520
+ *      Author: curiosul
  */
 
 #ifndef _COMBINATIONS_H_
