@@ -1170,7 +1170,7 @@ private:
         /** Columns */
         for( int x = 0; x < this->Size; x++ )
         {
-            /* Get all cells within line */
+            /* Get all cells within column */
             int ColumnCellsNo = 0;
             cell_extended_t ColumnCells[SUDOKU_MAX_SIZE] = {0};
             ColumnCellsNo = this->GetColumnElements(x, ColumnCells, true);
@@ -1269,11 +1269,21 @@ private:
         /* Columns */
         for( int x = 0; x < this->Size; x++ )
         {
-        
+            /* Get all unsolved cells within column */
+            int ColumnCellsNo = 0;
+            cell_extended_t ColumnCells[SUDOKU_MAX_SIZE] = {0};
+            ColumnCellsNo = this->GetColumnElements(x, ColumnCells, true);
+            
+            for( int celIdx = 0; celIdx < ColumnCellsNo; celIdx++ )
+            {
+            
+            }
+            
         }/* Columns */
         
         
         /* Lines */
+        
         
         /* Blocks */
     }
