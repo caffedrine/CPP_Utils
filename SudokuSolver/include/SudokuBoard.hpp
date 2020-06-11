@@ -1081,12 +1081,207 @@ private:
         for( int y = 0; y < this->Size; y++ )
         {
             /* Get all cells within line */
-            int BlockCellsNo = 0;
+            int LineCellsNo = 0;
             cell_extended_t LineCells[SUDOKU_MAX_SIZE] = {0};
-            //
+            LineCellsNo = this->GetLineElements(y, LineCells, true);
     
-        }
+            /* Get all cells which have 3 possibilities */
+            int CellsWithThreeSolutionsNo = 0;
+            cell_extended_t CellsWithThreeSolutions[SUDOKU_MAX_SIZE] = {0};
+            for( int blockCellIdx = 0; blockCellIdx < LineCellsNo; blockCellIdx++ )
+            {
+                if( LineCells[blockCellIdx].GetPossibleSolutionsNumber() == 3 )
+                {
+                    CellsWithThreeSolutions[CellsWithThreeSolutionsNo++] = LineCells[blockCellIdx];
+                }
+            }
+    
+            /* Get all cells which have have 2 possibilities */
+            int CellsWithTwoSolutionsNo = 0;
+            cell_extended_t CellsWithTwoSolutions[SUDOKU_MAX_SIZE] = {0};
+            for( int blockCellIdx = 0; blockCellIdx < LineCellsNo; blockCellIdx++ )
+            {
+                if( LineCells[blockCellIdx].GetPossibleSolutionsNumber() == 2 )
+                {
+                    CellsWithTwoSolutions[CellsWithTwoSolutionsNo++] = LineCells[blockCellIdx];
+                }
+            }
+    
+            int CellsFilledNo = 0;
+            cell_extended_t CellsFilled[3] = {0};
+            /* Check whether we have 3 cells containing the same 3 solutions - at leas one is required */
+            for( int cell1Idx = 0; cell1Idx < CellsWithThreeSolutionsNo; cell1Idx++ )
+            {
+                CellsFilled[CellsFilledNo++] = CellsWithThreeSolutions[cell1Idx];
         
+                /* Check if there are some other cells with exact 3 solutions */
+                for( int cell2Idx = cell1Idx + 1; cell2Idx < CellsWithThreeSolutionsNo; cell2Idx++ )
+                {
+                    if( HaveSameSolutions(&CellsFilled[0], &CellsWithThreeSolutions[cell2Idx]) )
+                    {
+                        CellsFilled[CellsFilledNo++] = CellsWithThreeSolutions[cell2Idx];
+                    }
+            
+                    if( CellsFilledNo == 3 )
+                        break;
+                }
+        
+                if( CellsFilledNo >= 1 )
+                {
+                    break;
+                }
+                else
+                {
+                    CellsFilledNo = 0;
+                }
+            }
+    
+            /* If there are less than 3 cells found containing the same 3 solutions, check for intersections with cells with two solutions */
+            if( (CellsFilledNo > 0) && (CellsFilledNo < 3) && ( (CellsWithTwoSolutionsNo+CellsFilledNo) >= 3) )
+            {
+                for( int cellIdx = 0; cellIdx < CellsWithTwoSolutionsNo; cellIdx++ )
+                {
+                    cell_extended_t currCell = CellsWithTwoSolutions[cellIdx];
+                    char currCellSolutions[2] = {0};
+                    currCellSolutions[0] = currCell.PossibleSolutions[0].Val;
+                    currCellSolutions[1] = currCell.PossibleSolutions[1].Val;
+            
+                    if( CellsFilled[0].ContainPossibleSolutions(currCellSolutions, 2) )
+                    {
+                        CellsFilled[CellsFilledNo++] = currCell;
+                    }
+            
+                    if( CellsFilledNo == 3 )
+                        break;
+                }
+            }
+    
+            /* Remove solutions from other cells */
+            if( CellsFilledNo == 3 )
+            {
+                /* Remove all possibilities except cell1.val and cell2.val from the rest of lines */
+                for( int lineCellIdx = 0; lineCellIdx < LineCellsNo; lineCellIdx++ )
+                {
+                    if( (LineCells[lineCellIdx].Coord == CellsFilled[0].Coord) || (LineCells[lineCellIdx].Coord == CellsFilled[1].Coord) || (LineCells[lineCellIdx].Coord == CellsFilled[2].Coord) )
+                    {
+                        continue;
+                    }
+            
+                    /* Since algo started gathering cells with 3 solutions, the first one must have 3 possibilities otherwise it would fall for naked pairs*/
+                    if( this->CellsMatrix[LineCells[lineCellIdx].Coord.y][LineCells[lineCellIdx].Coord.x].ContainPossibleSolution(CellsFilled[0].PossibleSolutions[0].Val))
+                        this->RemovePossibility(LineCells[lineCellIdx].Coord.x, LineCells[lineCellIdx].Coord.y, CellsFilled[0].PossibleSolutions[0].Val );
+            
+                    if( this->CellsMatrix[LineCells[lineCellIdx].Coord.y][LineCells[lineCellIdx].Coord.x].ContainPossibleSolution(CellsFilled[0].PossibleSolutions[1].Val))
+                        this->RemovePossibility(LineCells[lineCellIdx].Coord.x, LineCells[lineCellIdx].Coord.y, CellsFilled[0].PossibleSolutions[1].Val );
+            
+                    if( this->CellsMatrix[LineCells[lineCellIdx].Coord.y][LineCells[lineCellIdx].Coord.x].ContainPossibleSolution(CellsFilled[0].PossibleSolutions[2].Val))
+                        this->RemovePossibility(LineCells[lineCellIdx].Coord.x, LineCells[lineCellIdx].Coord.y, CellsFilled[0].PossibleSolutions[2].Val );
+                }
+            }
+        }/* Lines */
+    
+        /** Columns */
+        for( int x = 0; x < this->Size; x++ )
+        {
+            /* Get all cells within line */
+            int ColumnCellsNo = 0;
+            cell_extended_t ColumnCells[SUDOKU_MAX_SIZE] = {0};
+            ColumnCellsNo = this->GetColumnElements(x, ColumnCells, true);
+        
+            /* Get all cells which have 3 possibilities */
+            int CellsWithThreeSolutionsNo = 0;
+            cell_extended_t CellsWithThreeSolutions[SUDOKU_MAX_SIZE] = {0};
+            for( int blockCellIdx = 0; blockCellIdx < ColumnCellsNo; blockCellIdx++ )
+            {
+                if( ColumnCells[blockCellIdx].GetPossibleSolutionsNumber() == 3 )
+                {
+                    CellsWithThreeSolutions[CellsWithThreeSolutionsNo++] = ColumnCells[blockCellIdx];
+                }
+            }
+        
+            /* Get all cells which have have 2 possibilities */
+            int CellsWithTwoSolutionsNo = 0;
+            cell_extended_t CellsWithTwoSolutions[SUDOKU_MAX_SIZE] = {0};
+            for( int blockCellIdx = 0; blockCellIdx < ColumnCellsNo; blockCellIdx++ )
+            {
+                if( ColumnCells[blockCellIdx].GetPossibleSolutionsNumber() == 2 )
+                {
+                    CellsWithTwoSolutions[CellsWithTwoSolutionsNo++] = ColumnCells[blockCellIdx];
+                }
+            }
+        
+            int CellsFilledNo = 0;
+            cell_extended_t CellsFilled[3] = {0};
+            /* Check whether we have 3 cells containing the same 3 solutions - at leas one is required */
+            for( int cell1Idx = 0; cell1Idx < CellsWithThreeSolutionsNo; cell1Idx++ )
+            {
+                CellsFilled[CellsFilledNo++] = CellsWithThreeSolutions[cell1Idx];
+            
+                /* Check if there are some other cells with exact 3 solutions */
+                for( int cell2Idx = cell1Idx + 1; cell2Idx < CellsWithThreeSolutionsNo; cell2Idx++ )
+                {
+                    if( HaveSameSolutions(&CellsFilled[0], &CellsWithThreeSolutions[cell2Idx]) )
+                    {
+                        CellsFilled[CellsFilledNo++] = CellsWithThreeSolutions[cell2Idx];
+                    }
+                
+                    if( CellsFilledNo == 3 )
+                        break;
+                }
+            
+                if( CellsFilledNo >= 1 )
+                {
+                    break;
+                }
+                else
+                {
+                    CellsFilledNo = 0;
+                }
+            }
+        
+            /* If there are less than 3 cells found containing the same 3 solutions, check for intersections with cells with two solutions */
+            if( (CellsFilledNo > 0) && (CellsFilledNo < 3) && ( (CellsWithTwoSolutionsNo+CellsFilledNo) >= 3) )
+            {
+                for( int cellIdx = 0; cellIdx < CellsWithTwoSolutionsNo; cellIdx++ )
+                {
+                    cell_extended_t currCell = CellsWithTwoSolutions[cellIdx];
+                    char currCellSolutions[2] = {0};
+                    currCellSolutions[0] = currCell.PossibleSolutions[0].Val;
+                    currCellSolutions[1] = currCell.PossibleSolutions[1].Val;
+                
+                    if( CellsFilled[0].ContainPossibleSolutions(currCellSolutions, 2) )
+                    {
+                        CellsFilled[CellsFilledNo++] = currCell;
+                    }
+                
+                    if( CellsFilledNo == 3 )
+                        break;
+                }
+            }
+        
+            /* Remove solutions from other cells */
+            if( CellsFilledNo == 3 )
+            {
+                /* Remove all possibilities except cell1.val and cell2.val from the rest of columns */
+                for( int lineCellIdx = 0; lineCellIdx < ColumnCellsNo; lineCellIdx++ )
+                {
+                    if( (ColumnCells[lineCellIdx].Coord == CellsFilled[0].Coord) || (ColumnCells[lineCellIdx].Coord == CellsFilled[1].Coord) || (ColumnCells[lineCellIdx].Coord == CellsFilled[2].Coord) )
+                    {
+                        continue;
+                    }
+                
+                    /* Since algo started gathering cells with 3 solutions, the first one must have 3 possibilities otherwise it would fall for naked pairs*/
+                    if( this->CellsMatrix[ColumnCells[lineCellIdx].Coord.y][ColumnCells[lineCellIdx].Coord.x].ContainPossibleSolution(CellsFilled[0].PossibleSolutions[0].Val))
+                        this->RemovePossibility(ColumnCells[lineCellIdx].Coord.x, ColumnCells[lineCellIdx].Coord.y, CellsFilled[0].PossibleSolutions[0].Val );
+                
+                    if( this->CellsMatrix[ColumnCells[lineCellIdx].Coord.y][ColumnCells[lineCellIdx].Coord.x].ContainPossibleSolution(CellsFilled[0].PossibleSolutions[1].Val))
+                        this->RemovePossibility(ColumnCells[lineCellIdx].Coord.x, ColumnCells[lineCellIdx].Coord.y, CellsFilled[0].PossibleSolutions[1].Val );
+                
+                    if( this->CellsMatrix[ColumnCells[lineCellIdx].Coord.y][ColumnCells[lineCellIdx].Coord.x].ContainPossibleSolution(CellsFilled[0].PossibleSolutions[2].Val))
+                        this->RemovePossibility(ColumnCells[lineCellIdx].Coord.x, ColumnCells[lineCellIdx].Coord.y, CellsFilled[0].PossibleSolutions[2].Val );
+                }
+            }
+        }/* Columns */
     }
     
     void Algo_HiddenTriplets()
@@ -1449,6 +1644,40 @@ private:
                     out_Elements[ElementsIndex++] = tmpCell;
                 }
             }
+        }
+        return ElementsIndex;
+    }
+    uint8_t GetLineElements(uint8_t y, cell_extended_t *out_Elements, bool ExcludeSolved = false)
+    {
+        uint8_t ElementsIndex = 0;
+        cell_extended_t tmpCell;
+
+            for( int x = 0; x < this->Size; x++ )
+            {
+                if( (ExcludeSolved == true) && (this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL) ) /* Exclude already solved if specified */
+                {
+                    continue;
+                }
+                
+                tmpCell = this->CellsMatrix[y][x];
+                out_Elements[ElementsIndex++] = tmpCell;
+            }
+        return ElementsIndex;
+    }
+    uint8_t GetColumnElements(uint8_t x, cell_extended_t *out_Elements, bool ExcludeSolved = false)
+    {
+        uint8_t ElementsIndex = 0;
+        cell_extended_t tmpCell;
+        
+        for( int y = 0; y < this->Size; y++ )
+        {
+            if( (ExcludeSolved == true) && (this->CellsMatrix[y][x].val != UNSOLVED_SYMBOL) ) /* Exclude already solved if specified */
+            {
+                continue;
+            }
+            
+            tmpCell = this->CellsMatrix[y][x];
+            out_Elements[ElementsIndex++] = tmpCell;
         }
         return ElementsIndex;
     }
