@@ -297,8 +297,8 @@ public:
             Algo_HiddenSingles();
             if( this->IsSolved() ) break;
             
-            //Algo_NakedSingles();
-            //if( this->IsSolved() ) break;
+            Algo_NakedSingles();
+            if( this->IsSolved() ) break;
             
             /* Update time elapsed */
             //this->PrintTimeElapsed();
@@ -335,7 +335,7 @@ private:
     /* Flag indicating whether possibility table is fully updated or is updating */
     bool PossibilityTableUpdateRequest = true;
     /* Full table of solutions as a string representation for debugging */
-    std::string CellsMatrixAsStrings[13][13] = {""};
+    std::string CellsMatrixAsStrings[13][13] = {{""}};
     std::string CellsMatrixAsONEstring = "";
     std::string CellsMatrixAsONEstringColor = "";
     
