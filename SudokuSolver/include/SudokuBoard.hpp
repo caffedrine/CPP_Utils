@@ -358,11 +358,12 @@ private:
             
             /** Confirmed */
             Algo_LockedCandidates_Type1_Pointing();
-            //Algo_NakedPairs();
+            Algo_NakedPairs();
             Algo_LockedCandidates_Type2_Claiming();
+            Algo_HiddenPairs();
             
             /** Unconfirmed */
-//            Algo_HiddenPairs();
+            
 //            Algo_NakedTriplets();
         }
         
@@ -701,17 +702,15 @@ private:
                     
                     if( HaveSameSolutions(&cell1, &cell2) )
                     {
-                        /* Remove all possibilities os cell1.val and cell2.val from the rest of lines */
+                        /* Remove cell1.val and cell2.val from the rest of cells */
                         for( int x = 0; x < this->Size; x++ )
                         {
                             if( (this->CellsMatrix[y][x].Coord == cell1.Coord) || (this->CellsMatrix[y][x].Coord == cell2.Coord) ) /* Ignore cell1 and cell2 */
                             {
                                 continue;
                             }
-                            char exceptions[2];
-                            exceptions[0] = cell1.PossibleSolutions[0].Val;
-                            exceptions[1] = cell1.PossibleSolutions[1].Val;
-                            this->RemoveAllPosibilitiesExcept(x, y, exceptions, 2);
+                            this->RemovePossibility(x, y, cell1.PossibleSolutions[0].Val);
+                            this->RemovePossibility(x, y, cell1.PossibleSolutions[1].Val);
                         }
                     }
                 }
@@ -742,17 +741,15 @@ private:
                     
                     if( HaveSameSolutions(&cell1, &cell2) )
                     {
-                        /* Remove all possibilities except cell1.val and cell2.val from the rest of lines */
+                        /* Remove cell1.val and cell2.val from the rest of cells */
                         for( int y = 0; y < this->Size; y++ )
                         {
                             if( (this->CellsMatrix[y][x].Coord == cell1.Coord) || (this->CellsMatrix[y][x].Coord == cell2.Coord) ) /* Ignore cell1 and cell2 */
                             {
                                 continue;
                             }
-                            char exceptions[2];
-                            exceptions[0] = cell1.PossibleSolutions[0].Val;
-                            exceptions[1] = cell1.PossibleSolutions[1].Val;
-                            this->RemoveAllPosibilitiesExcept(x, y, exceptions, 2);
+                            this->RemovePossibility(x, y, cell1.PossibleSolutions[0].Val);
+                            this->RemovePossibility(x, y, cell1.PossibleSolutions[1].Val);
                         }
                     }
                 }
@@ -788,17 +785,15 @@ private:
                     
                     if( HaveSameSolutions(&cell1, &cell2) )
                     {
-                        /* Remove all possibilities except cell1.val and cell2.val from the rest of lines */
+                        /* Remove cell1.val and cell2.val from the rest of cells */
                         for( int blockCellIdx = 0; blockCellIdx < BlockCellsNo; blockCellIdx++ )
                         {
                             if( (BlockCells[blockCellIdx].Coord == cell1.Coord) || (BlockCells[blockCellIdx].Coord == cell2.Coord) )
                             {
                                 continue;
                             }
-                            char exceptions[2];
-                            exceptions[0] = cell1.PossibleSolutions[0].Val;
-                            exceptions[1] = cell1.PossibleSolutions[1].Val;
-                            this->RemoveAllPosibilitiesExcept(BlockCells[blockCellIdx].Coord.x, BlockCells[blockCellIdx].Coord.y, exceptions, 2);
+                            this->RemovePossibility(BlockCells[blockCellIdx].Coord.x, BlockCells[blockCellIdx].Coord.y, cell1.PossibleSolutions[0].Val);
+                            this->RemovePossibility(BlockCells[blockCellIdx].Coord.x, BlockCells[blockCellIdx].Coord.y, cell1.PossibleSolutions[1].Val);
                         }
                     }
                 }
@@ -863,7 +858,7 @@ private:
             /** Columns */
             for( int x = 0; x < this->Size; x++ )
             {
-                /* Keep only keep only candidates which appear twice */
+                /* Keep only candidates which appear twice */
                 int PossibilityPairsNo = 0;
                 possibility_pair_t PossibilityPairs[SUDOKU_MAX_SIZE] = {0};
                 for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
@@ -1258,7 +1253,7 @@ private:
             }
         }
     }
-    void RemoveAllPosibilitiesExcept(uint8_t x, uint8_t y, char *Exceptions, uint8_t ExceptionsNo)
+    void RemoveAllPosibilitiesExcept(uint8_t x, uint8_t y, const char *Exceptions, uint8_t ExceptionsNo)
     {
         for( int chrIdx = 0; chrIdx < this->Size; chrIdx++ )
         {
