@@ -364,15 +364,18 @@ private:
             PossibilityTableUpdateRequest = false;
             
             /** Confirmed */
-            Algo_LockedCandidates_Type1_Pointing();
-            Algo_NakedPairs();
-            Algo_LockedCandidates_Type2_Claiming();
-            Algo_HiddenPairs();
+            this->Algo_LockedCandidates_Type1_Pointing();
+            this->Algo_NakedPairs();
+            this->Algo_LockedCandidates_Type2_Claiming();
+            this->Algo_HiddenPairs();
             
             /** Unconfirmed */
-            Algo_NakedTriplets();
-            Algo_HiddenTriplets();
-            Algo_HiddenQuadruplets();
+            //this->Algo_NakedTriplets();
+            this->Algo_HiddenTriplets();
+            //this->Algo_NakedQuadruplets();
+            this->Algo_HiddenQuadruplets();
+    
+            this->Algo_Special();
         }
         
         /* To make sure next time will try to update as well */
@@ -1432,6 +1435,16 @@ private:
         }/*blocks*/
     }
     
+    void Algo_NakedQuadruplets()
+    {
+    
+    }
+    
+    void Algo_Special()
+    {
+    
+    }
+    
     void Algo_HiddenQuadruplets()
     {
         /* Columns */
@@ -1789,6 +1802,8 @@ private:
                 UpdateCellsStringRepresentation();
             }
         }
+    
+        UpdateCellsStringRepresentation();
         
         printf("Removed possibility '%c' from [%d][%d]\n", possibilityToRemove, x, y);
         this->PrintAllPossibilities();
