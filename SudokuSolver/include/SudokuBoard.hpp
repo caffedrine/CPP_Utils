@@ -372,6 +372,7 @@ private:
             /** Unconfirmed */
             Algo_NakedTriplets();
             Algo_HiddenTriplets();
+            Algo_HiddenQuadruplets();
         }
         
         /* To make sure next time will try to update as well */
@@ -1305,8 +1306,8 @@ private:
                                     continue;
                                 
                                 /* Now max three cells needs to be found containing at least two of these combinations above */
-                                if( (ColumnCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[0]) ||
-                                    ColumnCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[1])) ||
+                                if( ColumnCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[0]) ||
+                                    ColumnCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[1]) ||
                                     ColumnCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[2])
                                   )
                                     eligibleCellsFound[eligibleCellsFoundNo++] = ColumnCells[cel2Idx];
@@ -1315,14 +1316,9 @@ private:
                             /*Given solutions were found only in 3 cells in same house. Keep them and remove the others */
                             if( eligibleCellsFoundNo == 3 )
                             {
-                                if( eligibleCellsFound[0]->ContainPossibleSolutions(currCellSolutionsCombination, 3) )
-                                    this->RemoveAllPosibilitiesExcept(x,eligibleCellsFound[0]->Coord.y, currCellSolutionsCombination, 3 );
-                                
-                                if( eligibleCellsFound[1]->ContainPossibleSolutions(currCellSolutionsCombination, 3) )
-                                    this->RemoveAllPosibilitiesExcept(x, eligibleCellsFound[1]->Coord.y, currCellSolutionsCombination, 3 );
-                                
-                                if( eligibleCellsFound[2]->ContainPossibleSolutions(currCellSolutionsCombination, 3) )
-                                    this->RemoveAllPosibilitiesExcept(x, eligibleCellsFound[2]->Coord.y, currCellSolutionsCombination, 3 );
+                                this->RemoveAllPosibilitiesExcept(eligibleCellsFound[0]->Coord.x, eligibleCellsFound[0]->Coord.y, currCellSolutionsCombination, 3 );
+                                this->RemoveAllPosibilitiesExcept(eligibleCellsFound[1]->Coord.x, eligibleCellsFound[1]->Coord.y, currCellSolutionsCombination, 3 );
+                                this->RemoveAllPosibilitiesExcept(eligibleCellsFound[2]->Coord.x, eligibleCellsFound[2]->Coord.y, currCellSolutionsCombination, 3 );
                             }
                         }
             }/*each cell*/
@@ -1364,9 +1360,9 @@ private:
                                     continue;
                         
                                 /* Now max three cells needs to be found containing at least two of these combinations above */
-                                if( (LineCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[0]) ||
-                                     LineCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[1])) ||
-                                    LineCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[2])
+                                if(  LineCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[0]) ||
+                                     LineCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[1]) ||
+                                     LineCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[2])
                                         )
                                     eligibleCellsFound[eligibleCellsFoundNo++] = LineCells[cel2Idx];
                             }
@@ -1374,19 +1370,13 @@ private:
                             /*Given solutions were found only in 3 cells in same house. Keep them and remove the others */
                             if( eligibleCellsFoundNo == 3 )
                             {
-                                if( eligibleCellsFound[0]->ContainPossibleSolutions(currCellSolutionsCombination, 3) )
-                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[0]->Coord.x,y, currCellSolutionsCombination, 3 );
-                        
-                                if( eligibleCellsFound[1]->ContainPossibleSolutions(currCellSolutionsCombination, 3) )
-                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[1]->Coord.x, y, currCellSolutionsCombination, 3 );
-                        
-                                if( eligibleCellsFound[2]->ContainPossibleSolutions(currCellSolutionsCombination, 3) )
-                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[2]->Coord.x, y, currCellSolutionsCombination, 3 );
+                                this->RemoveAllPosibilitiesExcept(eligibleCellsFound[0]->Coord.x, eligibleCellsFound[0]->Coord.y, currCellSolutionsCombination, 3 );
+                                this->RemoveAllPosibilitiesExcept(eligibleCellsFound[1]->Coord.x, eligibleCellsFound[1]->Coord.y, currCellSolutionsCombination, 3 );
+                                this->RemoveAllPosibilitiesExcept(eligibleCellsFound[2]->Coord.x, eligibleCellsFound[2]->Coord.y, currCellSolutionsCombination, 3 );
                             }
                         }
             }/*each cell*/
         }/*Lines*/
-        
         
         /* Blocks */
         for(int blockIdx = 0; blockIdx < this->Size; blockIdx++)
@@ -1423,26 +1413,197 @@ private:
                                     continue;
                         
                                 /* Now max three cells needs to be found containing at least two of these combinations above */
-                                if( (BlockCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[0]) ||
-                                     BlockCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[1])) ||
-                                    BlockCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[2])
-                                        )
+                                if(  BlockCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[0]) ||
+                                     BlockCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[1]) ||
+                                     BlockCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[2])
+                                  )
                                     eligibleCellsFound[eligibleCellsFoundNo++] = BlockCells[cel2Idx];
                             }
                     
                             /*Given solutions were found only in 3 cells in same house. Keep them and remove the others */
                             if( eligibleCellsFoundNo == 3 )
                             {
-                                if( eligibleCellsFound[0]->ContainPossibleSolutions(currCellSolutionsCombination, 3) )
-                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[0]->Coord.x, eligibleCellsFound[0]->Coord.y, currCellSolutionsCombination, 3 );
-                        
-                                if( eligibleCellsFound[1]->ContainPossibleSolutions(currCellSolutionsCombination, 3) )
-                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[1]->Coord.x, eligibleCellsFound[1]->Coord.y, currCellSolutionsCombination, 3 );
-                        
-                                if( eligibleCellsFound[2]->ContainPossibleSolutions(currCellSolutionsCombination, 3) )
-                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[2]->Coord.x, eligibleCellsFound[2]->Coord.y, currCellSolutionsCombination, 3 );
+                                this->RemoveAllPosibilitiesExcept(eligibleCellsFound[0]->Coord.x, eligibleCellsFound[0]->Coord.y, currCellSolutionsCombination, 3 );
+                                this->RemoveAllPosibilitiesExcept(eligibleCellsFound[1]->Coord.x, eligibleCellsFound[1]->Coord.y, currCellSolutionsCombination, 3 );
+                                this->RemoveAllPosibilitiesExcept(eligibleCellsFound[2]->Coord.x, eligibleCellsFound[2]->Coord.y, currCellSolutionsCombination, 3 );        this->RemoveAllPosibilitiesExcept(eligibleCellsFound[2]->Coord.x, eligibleCellsFound[2]->Coord.y, currCellSolutionsCombination, 3 );
                             }
                         }
+            }/*each cell*/
+        }/*blocks*/
+    }
+    
+    void Algo_HiddenQuadruplets()
+    {
+        /* Columns */
+        for( int x = 0; x < this->Size; x++ )
+        {
+            /* Get all unsolved cells within column */
+            cell_extended_t *ColumnCells[SUDOKU_MAX_SIZE];
+            uint8_t ColumnCellsNo = this->GetColumnElementsPtrs(x, ColumnCells, true);
+            
+            for( int celIdx = 0; celIdx < ColumnCellsNo - 1; celIdx++ )
+            {
+                char cellSolutions[SUDOKU_MAX_SIZE] = {0};
+                uint8_t cellSolutionsNo = ColumnCells[celIdx]->GetPossibleSolutions(cellSolutions);
+                if( cellSolutionsNo < 3 )
+                    continue;
+                
+                /* Loop through all possible solutions of current cell and get all the combinations of 3*/
+                for(int char1Idx = 0; char1Idx < cellSolutionsNo - 3; char1Idx++)
+                    for(int char2Idx = char1Idx + 1; char2Idx < cellSolutionsNo - 2; char2Idx++)
+                        for(int char3Idx = char2Idx + 1; char3Idx < cellSolutionsNo -1; char3Idx++)
+                            for (int char4Idx = char3Idx + 1; char4Idx < cellSolutionsNo; char4Idx++)
+                            {
+                                char currCellSolutionsCombination[4] = {0};
+                                currCellSolutionsCombination[0] = cellSolutions[char1Idx];
+                                currCellSolutionsCombination[1] = cellSolutions[char2Idx];
+                                currCellSolutionsCombination[2] = cellSolutions[char3Idx];
+                                currCellSolutionsCombination[3] = cellSolutions[char4Idx];
+                                
+                                cell_extended_t *eligibleCellsFound[SUDOKU_MAX_SIZE] = {nullptr};
+                                eligibleCellsFound[0] = ColumnCells[celIdx];
+                                uint8_t eligibleCellsFoundNo = 1; // The first one is assumed to be the current cell */
+                                
+                                // Look through the rest of cells in this column whether this combination is found or elements of this combinations are found
+                                for( int cel2Idx = 0; cel2Idx < ColumnCellsNo; cel2Idx++ )
+                                {
+                                    if( cel2Idx == celIdx )
+                                        continue;
+                                    
+                                    /* Now max 4 cells needs to be found containing at least 3 of these combinations above */
+                                    if(  ColumnCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[0]) ||
+                                         ColumnCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[1]) ||
+                                         ColumnCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[2]) ||
+                                         ColumnCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[3])
+                                         )
+                                        eligibleCellsFound[eligibleCellsFoundNo++] = ColumnCells[cel2Idx];
+                                }
+                                
+                                /*Given solutions were found only in 3 cells in same house. Keep them and remove the others */
+                                if( eligibleCellsFoundNo == 4 )
+                                {
+                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[0]->Coord.x, eligibleCellsFound[0]->Coord.y, currCellSolutionsCombination, 4);
+                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[1]->Coord.x, eligibleCellsFound[1]->Coord.y, currCellSolutionsCombination, 4);
+                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[2]->Coord.x, eligibleCellsFound[2]->Coord.y, currCellSolutionsCombination, 4);
+                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[3]->Coord.x, eligibleCellsFound[3]->Coord.y, currCellSolutionsCombination, 4);
+                                }
+                            }
+            }/*each cell*/
+            
+        }/* Columns */
+        
+        /* Lines */
+        for( int y = 0; y < this->Size; y++ )
+        {
+            /* Get all unsolved cells within column */
+            cell_extended_t *LineCells[SUDOKU_MAX_SIZE];
+            uint8_t LineCellsNo = this->GetLineElementsPtrs(y, LineCells, true);
+            
+            for( int celIdx = 0; celIdx < LineCellsNo - 1; celIdx++ )
+            {
+                char cellSolutions[SUDOKU_MAX_SIZE] = {0};
+                uint8_t cellSolutionsNo = LineCells[celIdx]->GetPossibleSolutions(cellSolutions);
+                if( cellSolutionsNo < 3 )
+                    continue;
+                
+                /* Loop through all possible solutions of current cell and get all the combinations of 3*/
+                for(int char1Idx = 0; char1Idx < cellSolutionsNo - 2; char1Idx++)
+                    for(int char2Idx = char1Idx + 1; char2Idx < cellSolutionsNo - 1; char2Idx++)
+                        for(int char3Idx = char2Idx + 1; char3Idx < cellSolutionsNo; char3Idx++)
+                            for (int char4Idx = char3Idx + 1; char4Idx < cellSolutionsNo; char4Idx++)
+                            {
+                                char currCellSolutionsCombination[4] = {0};
+                                currCellSolutionsCombination[0] = cellSolutions[char1Idx];
+                                currCellSolutionsCombination[1] = cellSolutions[char2Idx];
+                                currCellSolutionsCombination[2] = cellSolutions[char3Idx];
+                                currCellSolutionsCombination[3] = cellSolutions[char4Idx];
+                                
+                                cell_extended_t *eligibleCellsFound[SUDOKU_MAX_SIZE] = {nullptr};
+                                eligibleCellsFound[0] = LineCells[celIdx];
+                                uint8_t eligibleCellsFoundNo = 1; // The first one is assumed to be the current cell */
+                                
+                                // Look through the rest of cells in this column whether this combination is found or elements of this combinations are found
+                                for( int cel2Idx = 0; cel2Idx < LineCellsNo; cel2Idx++ )
+                                {
+                                    if( cel2Idx == celIdx )
+                                        continue;
+                                    
+                                    /* Now max three cells needs to be found containing at least two of these combinations above */
+                                    if(  LineCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[0]) ||
+                                         LineCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[1]) ||
+                                         LineCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[2]) ||
+                                         LineCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[3])
+                                         )
+                                        eligibleCellsFound[eligibleCellsFoundNo++] = LineCells[cel2Idx];
+                                }
+                                
+                                /*Given solutions were found only in 4 cells in same house. Keep them and remove the others */
+                                if( eligibleCellsFoundNo == 4 )
+                                {
+                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[0]->Coord.x, eligibleCellsFound[0]->Coord.y, currCellSolutionsCombination, 4);
+                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[1]->Coord.x, eligibleCellsFound[1]->Coord.y, currCellSolutionsCombination, 4);
+                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[2]->Coord.x, eligibleCellsFound[2]->Coord.y, currCellSolutionsCombination, 4);
+                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[3]->Coord.x, eligibleCellsFound[3]->Coord.y, currCellSolutionsCombination, 4);
+                                }
+                            }
+            }/*each cell*/
+        }/*Lines*/
+        
+        
+        /* Blocks */
+        for(int blockIdx = 0; blockIdx < this->Size; blockIdx++)
+        {
+            /* Get all unsolved cells within column */
+            cell_extended_t *BlockCells[SUDOKU_MAX_SIZE];
+            uint8_t BlockCellsNo = this->GetBlockElementsPtrs(blockIdx, BlockCells, true);
+            
+            for( int celIdx = 0; celIdx < BlockCellsNo - 1; celIdx++ )
+            {
+                char cellSolutions[SUDOKU_MAX_SIZE] = {0};
+                uint8_t cellSolutionsNo = BlockCells[celIdx]->GetPossibleSolutions(cellSolutions);
+                if( cellSolutionsNo < 3 )
+                    continue;
+                
+                /* Loop through all possible solutions of current cell and get all the combinations of 3*/
+                for(int char1Idx = 0; char1Idx < cellSolutionsNo - 2; char1Idx++)
+                    for(int char2Idx = char1Idx + 1; char2Idx < cellSolutionsNo - 1; char2Idx++)
+                        for(int char3Idx = char2Idx + 1; char3Idx < cellSolutionsNo; char3Idx++)
+                            for (int char4Idx = char3Idx + 1; char4Idx < cellSolutionsNo; char4Idx++)
+                            {
+                                char currCellSolutionsCombination[4] = {0};
+                                currCellSolutionsCombination[0] = cellSolutions[char1Idx];
+                                currCellSolutionsCombination[1] = cellSolutions[char2Idx];
+                                currCellSolutionsCombination[2] = cellSolutions[char3Idx];
+                                currCellSolutionsCombination[3] = cellSolutions[char4Idx];
+                                
+                                cell_extended_t *eligibleCellsFound[SUDOKU_MAX_SIZE] = {nullptr};
+                                eligibleCellsFound[0] = BlockCells[celIdx];
+                                uint8_t eligibleCellsFoundNo = 1; // The first one is assumed to be the current cell */
+                                
+                                // Look through the rest of cells in this column whether this combination is found or elements of this combinations are found
+                                for( int cel2Idx = 0; cel2Idx < BlockCellsNo; cel2Idx++ )
+                                {
+                                    if( cel2Idx == celIdx )
+                                        continue;
+                                    
+                                    /* Now max three cells needs to be found containing at least two of these combinations above */
+                                    if(  BlockCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[0]) ||
+                                         BlockCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[1]) ||
+                                         BlockCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[2]) ||
+                                         BlockCells[cel2Idx]->ContainPossibleSolution(currCellSolutionsCombination[3])
+                                         )
+                                        eligibleCellsFound[eligibleCellsFoundNo++] = BlockCells[cel2Idx];
+                                }
+                                
+                                /*Given solutions were found only in 4 cells in same house. Keep them and remove the others */
+                                if( eligibleCellsFoundNo == 4 )
+                                {
+                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[0]->Coord.x, eligibleCellsFound[0]->Coord.y, currCellSolutionsCombination, 4);
+                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[1]->Coord.x, eligibleCellsFound[1]->Coord.y, currCellSolutionsCombination, 4);
+                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[2]->Coord.x, eligibleCellsFound[2]->Coord.y, currCellSolutionsCombination, 4);
+                                    this->RemoveAllPosibilitiesExcept(eligibleCellsFound[3]->Coord.x, eligibleCellsFound[3]->Coord.y, currCellSolutionsCombination, 4);
+                                }
+                            }
             }/*each cell*/
         }/*blocks*/
     }
@@ -1546,8 +1707,7 @@ private:
     void FoundSolution(const std::string& AlgoApplied, coord_t *Coords, char solution)
     {
         printf("\nFound a solution using '%s': [%x][%x] = %c:\n", AlgoApplied.c_str(), Coords->x, Coords->y, solution );
-        printf("BEFORE:\n");
-        this->PrintAllPossibilities();
+        //this->PrintAllPossibilities();
         
         /* Update matrix with given solution */
         this->CellsMatrix[Coords->y][Coords->x].val = solution;
@@ -1560,16 +1720,16 @@ private:
         
         /* Update visual board containing last solution */
         //this->PrintBoard();
-        printf("AFTER:\n");
-        this->PrintAllPossibilities();
-    
-        // Wait for user to continue
-        printf("Press a key to continue solving...");
-        fflush(stdin);
-        fflush(stdout);
-        getchar();
-        fflush(stdin);
-        fflush(stdout);
+//        printf("AFTER:\n");
+//        this->PrintAllPossibilities();
+//
+//        // Wait for user to continue
+//        printf("Press a key to continue solving...");
+//        fflush(stdin);
+//        fflush(stdout);
+//        getchar();
+//        fflush(stdin);
+//        fflush(stdout);
     }
     
     void IncCellsSolved()
